@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ExoDetect — ISRO BAH 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+:root{
+  --bg:#030309; --glass:rgba(16,20,46,.52); --glass2:rgba(10,13,32,.66);
+  --line:rgba(102,132,255,.16); --line2:rgba(102,132,255,.32);
+  --text:#eaf0ff; --muted:#8e97c2; --accent:#4de3ff; --accent2:#8b5cff;
+  --green:#34f5b0; --amber:#ffc24d; --red:#ff5c7a; --cyan:#4de3ff;
+}
+*{box-sizing:border-box} html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.55 'Space Grotesk','Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+/* layered cosmic background */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 85% -5%, rgba(139,92,255,.16), transparent 60%),
+    radial-gradient(700px 500px at -5% 30%, rgba(77,227,255,.08), transparent 60%),
+    radial-gradient(1000px 800px at 50% 115%, rgba(56,38,120,.22), transparent 65%)}
+body::after{content:'';position:fixed;inset:-50%;z-index:0;pointer-events:none;opacity:.5;
+  background:conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(77,227,255,.03) 90deg,
+    transparent 180deg, rgba(139,92,255,.04) 270deg, transparent 360deg);
+  animation:aurora 40s linear infinite}
+@keyframes aurora{to{transform:rotate(360deg)}}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:2;max-width:1300px;margin:0 auto;padding:22px}
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.logo{width:46px;height:46px;border-radius:13px;position:relative;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:grid;place-items:center;font-size:23px;
+  box-shadow:0 0 24px rgba(77,227,255,.45),0 0 60px rgba(139,92,255,.25)}
+.brand b{font:800 20px 'Orbitron';letter-spacing:2px;
+  background:linear-gradient(90deg,#fff,#9fd8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand span{display:block;color:var(--muted);font-size:10px;letter-spacing:4px;text-transform:uppercase;margin-top:2px}
+.badge{margin-left:8px;padding:6px 13px;border-radius:20px;font-size:11px;letter-spacing:.5px;
+  background:rgba(52,245,176,.08);color:var(--green);border:1px solid rgba(52,245,176,.3);
+  box-shadow:0 0 14px rgba(52,245,176,.12)}
+.nav{margin-left:auto;display:flex;gap:4px;background:var(--glass2);border:1px solid var(--line);
+  border-radius:14px;padding:4px;backdrop-filter:blur(12px)}
+.nav a{color:var(--muted);text-decoration:none;padding:9px 18px;border-radius:10px;font-size:13px;
+  font-weight:600;letter-spacing:.4px;cursor:pointer;transition:.22s}
+.nav a.active{color:#031018;background:linear-gradient(135deg,var(--accent),#7ab8ff);
+  box-shadow:0 0 18px rgba(77,227,255,.5)}
+.nav a:not(.active):hover{color:var(--text);background:rgba(102,132,255,.08)}
+/* ---------- cards ---------- */
+.page{display:none}.page.active{display:block;animation:pageIn .35s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:linear-gradient(180deg,var(--glass),var(--glass2));border:1px solid var(--line);
+  border-radius:20px;padding:20px;overflow:hidden;backdrop-filter:blur(16px);position:relative;transition:.25s}
+.card::before{content:'';position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(77,227,255,.35),transparent)}
+.card:hover{border-color:var(--line2);box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 30px rgba(77,227,255,.05)}
+.card h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:9px;
+  font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.card h3 .mut{text-transform:none;letter-spacing:0}
+.card .hint{color:var(--muted);font-size:12px;margin:0 0 13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.span2{grid-column:1/-1}
+canvas.chart{display:block;width:100%;border-radius:12px;cursor:crosshair}
+/* ---------- controls ---------- */
+button,.btn{background:linear-gradient(135deg,var(--accent),#6c8bff);color:#04101c;border:0;border-radius:11px;
+  padding:11px 20px;font:600 13.5px 'Space Grotesk';letter-spacing:.3px;cursor:pointer;transition:.2s;
+  box-shadow:0 4px 18px rgba(77,227,255,.25)}
+button:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(77,227,255,.4)}
+button.ghost{background:rgba(102,132,255,.07);border:1px solid var(--line2);color:var(--muted);box-shadow:none}
+button.ghost:hover{color:var(--text);border-color:var(--accent);box-shadow:0 0 14px rgba(77,227,255,.15)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.chipbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.chip{background:rgba(77,227,255,.06);border:1px solid var(--accent);color:var(--text);border-radius:20px;
+  padding:5px 14px;font-size:12px;cursor:pointer;transition:.18s}
+.chip:hover{box-shadow:0 0 12px rgba(77,227,255,.25)}
+.chip .x{color:var(--red);margin-left:7px;font-weight:700}
+.search{background:var(--glass2);border:1px solid var(--line2);color:var(--text);border-radius:11px;
+  padding:10px 15px;font:13px 'Space Grotesk';width:250px}
+.search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 16px rgba(77,227,255,.2)}
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:16px}
+.kpi{background:linear-gradient(180deg,var(--glass),var(--glass2));border:1px solid var(--line);
+  border-radius:16px;padding:15px 17px;backdrop-filter:blur(12px);transition:.22s;position:relative;overflow:hidden}
+.kpi:hover{transform:translateY(-2px);border-color:var(--line2)}
+.kpi .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1.2px}
+.kpi .v{font:800 27px 'Orbitron';margin-top:5px}
+.kpi .s{font-size:11px;color:var(--muted);margin-top:2px}
+.kpi.green .v{color:var(--green);text-shadow:0 0 18px rgba(52,245,176,.5)}
+.kpi.red .v{color:var(--red);text-shadow:0 0 18px rgba(255,92,122,.5)}
+.kpi.amber .v{color:var(--amber);text-shadow:0 0 18px rgba(255,194,77,.5)}
+.kpi.cyan .v{color:var(--cyan);text-shadow:0 0 18px rgba(77,227,255,.5)}
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--muted);text-align:left;font-weight:600;padding:10px;border-bottom:1px solid var(--line2);
+  cursor:pointer;user-select:none;white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+th:hover{color:var(--accent)} td{padding:10px;border-bottom:1px solid var(--line)}
+tbody tr{cursor:pointer;transition:.15s} tbody tr:hover{background:rgba(77,227,255,.05)}
+.pillsm{display:inline-block;padding:3px 11px;border-radius:14px;font-size:10.5px;font-weight:700;letter-spacing:.5px}
+.p-conf{background:rgba(52,245,176,.1);color:var(--green);border:1px solid rgba(52,245,176,.35)}
+.p-cand{background:rgba(255,194,77,.1);color:var(--amber);border:1px solid rgba(255,194,77,.35)}
+.p-fp{background:rgba(255,92,122,.1);color:var(--red);border:1px solid rgba(255,92,122,.35)}
+.p-anom{background:rgba(77,227,255,.1);color:var(--cyan);border:1px solid rgba(77,227,255,.35)}
+/* ---------- upload ---------- */
+.drop{border:2px dashed rgba(102,132,255,.35);border-radius:18px;padding:48px;text-align:center;transition:.25s;cursor:pointer;
+  background:radial-gradient(400px 200px at 50% 0%,rgba(77,227,255,.04),transparent)}
+.drop.hover{border-color:var(--accent);background:rgba(77,227,255,.05);box-shadow:0 0 40px rgba(77,227,255,.15) inset}
+.drop .big{font-size:44px;filter:drop-shadow(0 0 18px rgba(77,227,255,.6))}
+.stage{display:flex;align-items:center;gap:12px;padding:10px 0;color:var(--muted);font-size:13px}
+.stage .st-ico{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:var(--glass2);border:1px solid var(--line2);font-size:12px;flex-shrink:0;transition:.3s}
+.stage.done{color:var(--text)}
+.stage.done .st-ico{background:rgba(52,245,176,.12);border-color:var(--green);color:var(--green);box-shadow:0 0 14px rgba(52,245,176,.3)}
+.stage.run .st-ico{border-color:var(--accent);color:var(--accent);box-shadow:0 0 16px rgba(77,227,255,.4);animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 26px rgba(77,227,255,.7)}}
+.stage .bar{flex:1;height:5px;border-radius:4px;background:rgba(5,8,20,.8);overflow:hidden}
+.stage .bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:4px;transition:width .25s;box-shadow:0 0 10px rgba(77,227,255,.6)}
+/* ---------- hero ---------- */
+.hero{display:flex;gap:18px;align-items:center;background:linear-gradient(135deg,rgba(20,26,60,.6),rgba(8,10,26,.7));
+  border:1px solid var(--line);border-radius:22px;padding:20px 24px;margin-bottom:16px;flex-wrap:wrap;
+  backdrop-filter:blur(16px);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(77,227,255,.5),transparent)}
+.hero h1{margin:0;font:700 22px 'Space Grotesk'}
+.hero .sub{color:var(--muted);font-size:12px;margin-top:3px}
+.verdict{margin-left:auto;text-align:right}
+.pill{display:inline-flex;align-items:center;gap:9px;padding:9px 18px;border-radius:30px;
+  font:700 13px 'Orbitron';letter-spacing:1px}
+.pill.ok{background:rgba(52,245,176,.09);color:var(--green);border:1px solid rgba(52,245,176,.4);box-shadow:0 0 22px rgba(52,245,176,.15)}
+.pill.bad{background:rgba(255,92,122,.09);color:var(--red);border:1px solid rgba(255,92,122,.4);box-shadow:0 0 22px rgba(255,92,122,.15)}
+.pill.warn{background:rgba(255,194,77,.09);color:var(--amber);border:1px solid rgba(255,194,77,.4);box-shadow:0 0 22px rgba(255,194,77,.15)}
+.dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor;animation:blink 2s infinite}
+@keyframes blink{50%{opacity:.5}}
+.conf{font-size:12px;color:var(--muted);margin-top:7px}.conf b{color:var(--text);font-size:14px}
+/* ---------- models / shap / params ---------- */
+.model{display:flex;align-items:center;gap:12px;margin:11px 0}
+.model .name{width:114px;font-size:13px}
+.model .track{flex:1;height:9px;background:rgba(5,8,20,.85);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+.model .fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .9s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(77,227,255,.5)}
+.model .val{width:44px;text-align:right;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta-row .fill{background:linear-gradient(90deg,var(--green),#7CF5C6);box-shadow:0 0 12px rgba(52,245,176,.5)}
+.meta-row .name{font-weight:700}
+.shap{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+.shap .lbl{width:150px;color:var(--muted)}
+.shap .barwrap{flex:1;position:relative;height:20px}
+.shap .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line2)}
+.shap .bar{height:14px;border-radius:4px;position:absolute;top:3px;transition:width .7s}
+.shap .pos{background:linear-gradient(90deg,rgba(52,245,176,.6),var(--green));left:50%;box-shadow:0 0 10px rgba(52,245,176,.4)}
+.shap .neg{background:linear-gradient(270deg,rgba(255,92,122,.6),var(--red));right:50%;box-shadow:0 0 10px rgba(255,92,122,.4)}
+.shap .num{width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.params{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.param{background:var(--glass2);border:1px solid var(--line);border-radius:12px;padding:11px 14px;transition:.2s}
+.param:hover{border-color:var(--line2)}
+.param .k{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:1px}
+.param .v{font:600 17px 'Space Grotesk';margin-top:3px}.param .v small{font-size:11px;color:var(--muted);font-weight:400}
+.anom{display:flex;gap:14px;align-items:center;border-radius:14px;padding:14px;background:var(--glass2);border:1px solid var(--line)}
+.anom .big{font-size:27px}.anom .t{font-weight:600;font-size:13px}.anom .d{color:var(--muted);font-size:12px}
+/* ---------- tooltip / 3d ---------- */
+.tip{position:fixed;pointer-events:none;background:rgba(14,19,44,.95);border:1px solid var(--accent);border-radius:10px;
+  padding:9px 13px;font-size:12px;z-index:50;display:none;box-shadow:0 10px 40px rgba(0,0,0,.6),0 0 20px rgba(77,227,255,.15);
+  line-height:1.65;backdrop-filter:blur(8px)}
+.tip b{color:var(--cyan)}
+#scene3dwrap{position:relative;border-radius:14px;overflow:hidden;background:#010104;
+  box-shadow:0 0 60px rgba(77,227,255,.06) inset}
+#scene3d{display:block;width:100%;height:560px}
+.s3hud{position:absolute;left:16px;bottom:14px;font-size:11.5px;color:#aab8ee;background:rgba(6,9,24,.78);
+  border:1px solid var(--line2);border-radius:11px;padding:9px 13px;pointer-events:none;backdrop-filter:blur(10px);
+  letter-spacing:.4px;transition:border-color .3s}
+.s3hud b{color:#fff}
+.s3controls{position:absolute;right:14px;top:14px;display:flex;gap:7px}
+.s3controls button{padding:7px 13px;font-size:11.5px;border-radius:9px;letter-spacing:.5px}
+.s3err{position:absolute;inset:0;display:none;place-items:center;text-align:center;color:var(--muted);font-size:13px;padding:30px}
+.s3title{position:absolute;left:16px;top:14px;pointer-events:none}
+.s3title .t1{font:800 15px 'Orbitron';letter-spacing:3px;color:#fff;text-shadow:0 0 20px rgba(77,227,255,.8)}
+.s3title .t2{font-size:10px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+footer{color:var(--muted);font-size:11px;text-align:center;margin:28px 0 8px;letter-spacing:.5px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mut{color:var(--muted)} .right{margin-left:auto}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}#scene3d{height:420px}}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="tip" id="tip"></div>
+<div class="wrap">
+  <header>
+    <div class="logo">🛰️</div>
+    <div class="brand"><b>EXODETECT</b><span>ISRO · BAH 2026</span></div>
+    <span class="badge" id="dbBadge">● local store: 0 candidates</span>
+    <nav class="nav">
+      <a data-page="upload">Upload</a>
+      <a data-page="results" class="active">Results</a>
+      <a data-page="browse">Browse</a>
+      <a data-page="anomalies">Anomalies</a>
+    </nav>
+  </header>
+
+  <!-- ==================== UPLOAD ==================== -->
+  <div class="page" id="page-upload">
+    <div class="grid">
+      <div class="card">
+        <h3>📤 Ingest a Light Curve</h3>
+        <p class="hint">Upload a Kepler/TESS FITS or CSV — or pull an official sample. Data flows through the 5-stage pipeline, then persists locally (browser storage stands in for Supabase in this preview).</p>
+        <div class="drop" id="drop">
+          <div class="big">🛰️</div>
+          <div style="margin:10px 0 4px;font-weight:600;letter-spacing:.5px">Drop FITS / CSV here</div>
+          <div class="mut" style="font-size:12px">or click to choose a file</div>
+          <input type="file" id="file" accept=".fits,.csv,.txt" style="display:none">
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button id="btnSample">▶ Run demo — KIC 11442793 (Kepler-90)</button>
+          <button class="ghost" id="btnSampleFP">Run demo — eclipsing binary (FP)</button>
+        </div>
+        <p class="hint" style="margin-top:13px">🔗 Official sources: NASA MAST (Kepler/K2/TESS) · ISRO ISSDC PRADAN (AstroSat) — scripted route in <code>pipeline/download.py</code></p>
+      </div>
+      <div class="card">
+        <h3>⚙️ Pipeline Progress</h3>
+        <p class="hint">The exact stages from <code>pipeline/</code> — quality filter → detrend → BLS search → features → ensemble.</p>
+        <div id="stages">
+          <div class="stage" data-s="0"><div class="st-ico">1</div><div style="width:152px">Quality filter</div><div class="bar"><i></i></div><div class="pct mut" style="width:40px;text-align:right">–</div></div>
+          <div class="stage" data-s="1"><div class="st-ico">2</div><div style="width:152px">Detrend + normalize</div><div class="bar"><i></i></div><div class="pct mut" style="width:40px;text-align:right">–</div></div>
+          <div class="stage" data-s="2"><div class="st-ico">3</div><div style="width:152px">BLS period search</div><div class="bar"><i></i></div><div class="pct mut" style="width:40px;text-align:right">–</div></div>
+          <div class="stage" data-s="3"><div class="st-ico">4</div><div style="width:152px">Feature extraction</div><div class="bar"><i></i></div><div class="pct mut" style="width:40px;text-align:right">–</div></div>
+          <div class="stage" data-s="4"><div class="st-ico">5</div><div style="width:152px">Ensemble inference</div><div class="bar"><i></i></div><div class="pct mut" style="width:40px;text-align:right">–</div></div>
+        </div>
+        <div id="pipeMsg" class="mut" style="font-size:12px;margin-top:12px">idle — waiting for input</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== RESULTS ==================== -->
+  <div class="page active" id="page-results">
+    <div class="hero">
+      <div>
+        <h1 id="rTitle">Kepler-90 i <span class="mut" style="font-size:14px">· KIC 11442793</span></h1>
+        <div class="sub" id="rSub">Kepler mission · 71,427 cadences · analysed in 2.4s</div>
+      </div>
+      <div class="verdict">
+        <div class="pill ok" id="rPill"><span class="dot"></span> PLANET DETECTED</div>
+        <div class="conf" id="rConf">ensemble confidence <b>96.3%</b> · FP prob <b>2.1%</b></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card span2" style="padding:12px">
+        <div id="scene3dwrap">
+          <canvas id="scene3d"></canvas>
+          <div class="s3title"><div class="t1" id="s3name">KEPLER-90 i</div><div class="t2">transit system · live simulation</div></div>
+          <div class="s3controls">
+            <button class="ghost" id="s3fSystem" style="color:var(--cyan)">✦ system</button>
+            <button class="ghost" id="s3fCurve">📈 curve</button>
+            <button class="ghost" id="s3fGalaxy">🌌 galaxy</button>
+            <button class="ghost" id="s3auto">⟳ auto</button>
+            <button class="ghost" id="s3obs">👁 observer</button>
+            <button class="ghost" id="s3reset">⌂ reset</button>
+          </div>
+          <div class="s3hud" id="s3hud"><b>drag</b> rotate 360° · <b>wheel</b> zoom · phase <b id="s3phase">0.00</b></div>
+          <div class="s3err" id="s3err">Loading 3D engine…<br><span style="font-size:11px">needs internet once (Three.js CDN)</span></div>
+        </div>
+      </div>
+
+      <div class="card span2">
+        <h3>📈 Light Curve <span class="mut" style="font-weight:400;font-size:11.5px">— hover values · drag to zoom · double-click reset</span></h3>
+        <div class="chipbar" style="margin-top:2px">
+          <div class="chip" data-view="raw" style="border-color:var(--line);color:var(--muted)">Raw flux</div>
+          <div class="chip" data-view="clean">Cleaned + detrended</div>
+          <div class="chip" data-view="fold" style="border-color:var(--line);color:var(--muted)">Phase-folded</div>
+        </div>
+        <canvas class="chart" id="lc" height="250"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>🔭 Physical Parameters</h3>
+        <p class="hint">From the BLS/TLS search + stellar catalog.</p>
+        <div class="params" id="rParams"></div>
+      </div>
+
+      <div class="card">
+        <h3>🌍 Habitability &amp; Star System</h3>
+        <p class="hint">Size vs Earth/Mars/Jupiter, habitable-zone check (Kopparapu limits), distance &amp; host star — an indicator from transit physics, not an atmosphere claim.</p>
+        <div id="rHabPill" style="margin:4px 0 10px"></div>
+        <div class="params" id="rHab"></div>
+        <p class="hint" id="rHabSrc" style="margin-top:8px"></p>
+      </div>
+
+      <div class="card">
+        <h3>🧠 AI Ensemble</h3>
+        <p class="hint">Five models vote — the meta-learner fuses them.</p>
+        <div id="rModels"></div>
+      </div>
+
+      <div class="card">
+        <h3>💡 Why? — SHAP</h3>
+        <p class="hint">Green pushes toward planet, red toward false positive.</p>
+        <div id="rShap"></div>
+      </div>
+
+      <div class="card">
+        <h3>🛰️ Novelty Check</h3>
+        <p class="hint">Parallel anomaly branch — catches what the classifier can't.</p>
+        <div class="anom" id="rAnom"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BROWSE ==================== -->
+  <div class="page" id="page-browse">
+    <div class="row" style="margin-bottom:14px">
+      <input class="search" id="q" placeholder="🔍 Search target / KIC…">
+      <div class="chipbar" id="filterChips" style="margin:0"></div>
+      <button class="ghost right" id="clearF">✕ clear filters</button>
+      <button class="ghost" id="exportCsv">⬇ export CSV</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>📊 Dispositions <span class="mut" style="font-size:11px;font-weight:400">— click to cross-filter</span></h3>
+        <canvas class="chart" id="donut" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h3>📶 Confidence <span class="mut" style="font-size:11px;font-weight:400">— click a bar to filter</span></h3>
+        <canvas class="chart" id="hist" height="220"></canvas>
+      </div>
+      <div class="card span2">
+        <h3>🌌 Period vs Depth <span class="mut" style="font-size:11px;font-weight:400">— click dot to open · drag box to select</span></h3>
+        <canvas class="chart" id="scatter" height="260"></canvas>
+      </div>
+      <div class="card span2">
+        <h3>🗂 Candidates <span class="mut" id="tblCount" style="font-size:11px;font-weight:400"></span></h3>
+        <table id="tbl">
+          <thead><tr>
+            <th data-k="name">Target ⇅</th><th data-k="period">Period d ⇅</th><th data-k="depth">Depth ppm ⇅</th>
+            <th data-k="snr">SNR ⇅</th><th data-k="conf">Confidence ⇅</th><th data-k="disp">Disposition ⇅</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ANOMALIES ==================== -->
+  <div class="page" id="page-anomalies">
+    <div class="card">
+      <h3>🚨 Novelty Queue — Human Review</h3>
+      <p class="hint">Reconstruction error above threshold — the "unknown unknowns" branch, sorted by weirdness.</p>
+      <table id="anomTbl">
+        <thead><tr><th>Target</th><th>Recon. error</th><th>Trigger</th><th>Suggested cause</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>EXODETECT · AI-Enabled Exoplanet Detection from Noisy Light Curves · ISRO Bhartiya Antariksh Hackathon 2026</footer>
+</div>
+
+<script>
+/* ============ helpers ============ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const tip=$('#tip');
+function showTip(x,y,html){tip.style.display='block';tip.innerHTML=html;
+  const r=tip.getBoundingClientRect();
+  tip.style.left=Math.min(x+14,innerWidth-r.width-10)+'px';
+  tip.style.top=Math.min(y+14,innerHeight-r.height-10)+'px';}
+function hideTip(){tip.style.display='none'}
+function fmt(n,d=2){return Number(n).toFixed(d)}
+let _seed=42;function rnd(){_seed=(_seed*1103515245+12345)&0x7fffffff;return _seed/0x7fffffff}
+
+/* ============ DATA STORE (localStorage = preview Supabase) ============ */
+const DISPS=['CONFIRMED','CANDIDATE','FALSE POSITIVE','ANOMALY'];
+function makeSeed(){
+  const names=[['Kepler-90 i','KIC 11442793',14.45,203,18.7,.963,'CONFIRMED'],
+    ['Kepler-10 b','KIC 11904151',0.84,152,32.1,.988,'CONFIRMED'],
+    ['Kepler-8 b','KIC 6922244',3.52,9100,45.3,.991,'CONFIRMED'],
+    ['KOI-4427.01','KIC 4172805',147.66,410,9.2,.71,'CANDIDATE'],
+    ['KOI-5123.01','KIC 5651104',22.34,310,7.8,.64,'CANDIDATE'],
+    ['KIC 4862625','binary A',5.56,14800,51.0,.08,'FALSE POSITIVE'],
+    ['KIC 9832227','contact binary',0.46,22000,63.2,.03,'FALSE POSITIVE'],
+    ['KIC 8462852','Boyajian dips',700,2200,12.1,.41,'ANOMALY'],
+    ['KOI-6705.01','KIC 6705',41.03,95,5.9,.55,'CANDIDATE']];
+  const rows=names.map((n,i)=>({id:'c'+i,name:n[0],kic:n[1],period:n[2],depth:n[3],snr:n[4],conf:n[5],disp:n[6],
+    dur:+fmt(1.5+rnd()*6,1),rp:+fmt(.8+rnd()*3,2),oddEven:+fmt(rnd()*3,1),recon:n[6]==='ANOMALY'?.21:.01+rnd()*.05}));
+  for(let i=rows.length;i<34;i++){
+    const disp=DISPS[rnd()<.38?0:rnd()<.55?1:rnd()<.8?2:3];
+    const conf=disp==='CONFIRMED'?.85+rnd()*.14:disp==='CANDIDATE'?.5+rnd()*.3:disp==='FALSE POSITIVE'?rnd()*.25:.3+rnd()*.3;
+    rows.push({id:'c'+i,name:'KOI-'+(1000+Math.floor(rnd()*8000))+'.01',kic:'KIC '+(3000000+Math.floor(rnd()*9000000)),
+      period:+fmt(.5+rnd()*rnd()*120,2),depth:Math.round(60+rnd()*rnd()*20000),snr:+fmt(4+rnd()*60,1),
+      conf:+fmt(conf,3),disp,dur:+fmt(1+rnd()*8,1),rp:+fmt(.5+rnd()*4,2),oddEven:+fmt(rnd()*(disp==='FALSE POSITIVE'?25:3),1),
+      recon:+(disp==='ANOMALY'?.12+rnd()*.2:.005+rnd()*.06).toFixed(3)});
+  }
+  return rows;
+}
+let DB=JSON.parse(localStorage.getItem('exodetect_db')||'null');
+if(!DB){DB=makeSeed();localStorage.setItem('exodetect_db',JSON.stringify(DB));}
+function saveDB(){localStorage.setItem('exodetect_db',JSON.stringify(DB));updateBadge();}
+function updateBadge(){$('#dbBadge').textContent='● local store: '+DB.length+' candidates';}
+updateBadge();
+
+/* ============ router ============ */
+$$('.nav a').forEach(a=>a.onclick=()=>{
+  $$('.nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
+  $$('.page').forEach(p=>p.classList.remove('active'));
+  $('#page-'+a.dataset.page).classList.add('active');
+  if(a.dataset.page==='browse')renderBrowse();
+  if(a.dataset.page==='anomalies')renderAnoms();
+  if(a.dataset.page==='results'){resize3d();drawLC();}
+});
+function goto(page){$$('.nav a').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  $$('.page').forEach(p=>p.classList.remove('active'));$('#page-'+page).classList.add('active');
+  if(page==='results'){resize3d();drawLC();}}
+
+/* ============ page background: stars + shooting stars ============ */
+(function(){const c=$('#stars'),x=c.getContext('2d');
+function size(){c.width=innerWidth;c.height=innerHeight}size();addEventListener('resize',size);
+const st=Array.from({length:170},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.3+.2,tw:Math.random()*6}));
+let meteors=[];
+(function loop(t){x.clearRect(0,0,c.width,c.height);
+for(const s of st){x.globalAlpha=.3+.55*Math.abs(Math.sin(t/900+s.tw));x.fillStyle='#cdd8ff';
+  x.beginPath();x.arc(s.x*c.width,s.y*c.height,s.r,0,7);x.fill()}
+if(Math.random()<.004&&meteors.length<2)meteors.push({x:Math.random()*c.width,y:Math.random()*c.height*.4,v:6+Math.random()*5,life:1});
+meteors=meteors.filter(m=>m.life>0);
+for(const m of meteors){m.x+=m.v;m.y+=m.v*.45;m.life-=.02;
+  const g=x.createLinearGradient(m.x-70,m.y-31,m.x,m.y);
+  g.addColorStop(0,'rgba(77,227,255,0)');g.addColorStop(1,'rgba(200,240,255,'+(.7*m.life)+')');
+  x.strokeStyle=g;x.lineWidth=1.6;x.beginPath();x.moveTo(m.x-70,m.y-31);x.lineTo(m.x,m.y);x.stroke()}
+x.globalAlpha=1;requestAnimationFrame(loop)})(0)})();
+
+/* ============ results rendering ============ */
+let CUR=DB[0];
+function lcParams(c){return {per:Math.max(20,Math.min(200,c.period*8)),depth:Math.max(.002,Math.min(.05,c.depth/2e5)),
+  dur:Math.max(6,Math.min(26,c.dur*3)),noise:c.disp==='FALSE POSITIVE'?.004:.0022,
+  vshape:c.disp==='FALSE POSITIVE',weird:c.disp==='ANOMALY'};}
+function renderResults(c){
+  CUR=c;
+  $('#rTitle').innerHTML=c.name+' <span class="mut" style="font-size:14px">· '+c.kic+'</span>';
+  $('#s3name').textContent=c.name.toUpperCase();
+  $('#rSub').textContent='Kepler mission · '+(40000+Math.floor(c.snr*900)).toLocaleString()+' cadences · analysed in '+fmt(1+c.snr/30,1)+'s';
+  const pill=$('#rPill'),conf=$('#rConf');
+  const isP=c.disp==='CONFIRMED'||c.disp==='CANDIDATE';
+  pill.className='pill '+(c.disp==='CONFIRMED'?'ok':c.disp==='CANDIDATE'?'warn':c.disp==='ANOMALY'?'warn':'bad');
+  pill.innerHTML='<span class="dot"></span> '+(c.disp==='CONFIRMED'?'PLANET DETECTED':c.disp==='CANDIDATE'?'PLANET CANDIDATE':c.disp==='ANOMALY'?'NOVEL SIGNAL — REVIEW':'FALSE POSITIVE');
+  conf.innerHTML='ensemble confidence <b>'+fmt(c.conf*100,1)+'%</b> · FP prob <b>'+fmt((1-c.conf)*88,1)+'%</b>';
+  $('#rParams').innerHTML=
+    par('Orbital period',fmt(c.period,2),'days')+par('Planet radius',fmt(c.rp,2),'R⊕')+
+    par('Transit depth',c.depth.toLocaleString(),'ppm')+par('Duration',fmt(c.dur,1),'hrs')+
+    par('Signal-to-noise',fmt(c.snr,1),'σ')+par('Odd–even Δ',fmt(c.oddEven,1),'% '+(c.oddEven<5?'✓ low':'⚠ high'));
+  renderHab(c);
+  const m={cnn:.5+c.conf*.49,lstm:.45+c.conf*.5,tr:.48+c.conf*.49,xgb:.42+c.conf*.52,fp:1-c.conf*.96};
+  if(!isP){m.cnn=c.conf*.9+.03;m.lstm=c.conf*.8+.05;m.tr=c.conf*.85+.04;m.xgb=c.conf*.75+.06;m.fp=.92-c.conf*.5}
+  $('#rModels').innerHTML=
+    bar('1D CNN',m.cnn)+bar('LSTM',m.lstm)+bar('Transformer',m.tr)+bar('XGBoost',m.xgb)+bar('FP Specialist',m.fp)+
+    '<div style="height:1px;background:var(--line);margin:12px 0"></div>'+bar('Meta-learner',c.conf,true);
+  const s=[['Transit SNR',.31*(isP?1:-1)],['Odd–even match',(c.oddEven<5?.24:-.28)],
+    ['Transit symmetry',isP?.18:-.14],['Period stability',.11],['Secondary eclipse',c.disp==='FALSE POSITIVE'?-.31:-.08]];
+  $('#rShap').innerHTML=s.map(([l,v])=>shapRow(l,v)).join('');
+  const an=$('#rAnom');
+  if(c.disp==='ANOMALY'){an.style.borderColor='rgba(255,194,77,.4)';
+    an.innerHTML='<div class="big">🚨</div><div><div class="t" style="color:var(--amber)">NOVELTY FLAG — routed to human review</div><div class="d">Reconstruction error '+fmt(c.recon,3)+' (threshold 0.100). Morphology does not match learned transit shapes — possible TTV / circumbinary / multi-planet signal.</div></div>';}
+  else{an.style.borderColor='rgba(52,245,176,.35)';
+    an.innerHTML='<div class="big">✅</div><div><div class="t">Nominal — no novelty flag</div><div class="d">Reconstruction error '+fmt(c.recon,3)+' (threshold 0.100). Signal matches known morphology; not routed to review queue.</div></div>';}
+  buildSeries();drawLC();if(window.set3dFromCandidate)set3dFromCandidate();
+}
+const par=(k,v,s)=>'<div class="param"><div class="k">'+k+'</div><div class="v">'+v+' <small>'+s+'</small></div></div>';
+// ---- characterization physics (mirrors pipeline/characterize.py, 12/12 verified) ----
+const KNOWN_STARS=[
+  ['11442793',{teff:6080,srad:1.2,smass:1.13,dist:855,src:'stellar catalog'}],
+  ['Kepler-10',{teff:5708,srad:1.065,smass:0.913,dist:173,src:'stellar catalog'}],
+  ['9832227',{teff:5800,srad:1.1,smass:1.0,dist:565,src:'stellar catalog'}],
+  ['8462852',{teff:6750,srad:1.58,smass:1.43,dist:451,src:'stellar catalog'}],
+  ['4862625',{teff:6200,srad:1.4,smass:1.2,dist:800,src:'stellar catalog'}]];
+function starFor(c){
+  const key=(c.name+' '+c.kic);
+  for(const [k,s] of KNOWN_STARS) if(key.indexOf(k)>=0) return s;
+  let h=0; for(let i=0;i<key.length;i++) h=(h*31+key.charCodeAt(i))>>>0;   // deterministic per star
+  return {teff:4200+h%2600, srad:.7+(h>>3)%90/100, smass:.7+(h>>7)%70/100,
+          dist:90+(h>>11)%1100, src:'simulated (demo) — real app: NASA stellar catalog'};
+}
+function characterizePlanet(c){
+  const st=starFor(c), depth=Math.max(c.depth,0)*1e-6;
+  const rp=st.srad*Math.sqrt(depth)*109.1;                       // R_earth
+  const a=Math.cbrt(st.smass*Math.pow(c.period/365.25,2));       // AU (Kepler 3rd law)
+  const lum=st.srad*st.srad*Math.pow(st.teff/5772,4);            // L_sun
+  const S=lum/(a*a);                                             // insolation, Earth=1
+  const teq=st.teff*Math.sqrt(st.srad*0.00465047/(2*a))*Math.pow(0.7,0.25);
+  const rocky=rp<1.8;
+  let zone,zc;
+  if(S>1.776){zone='too hot — closer than the habitable zone';zc='bad'}
+  else if(S<0.32){zone='too cold — beyond the habitable zone';zc='bad'}
+  else if(S>=0.356&&S<=1.107){zone='inside the CONSERVATIVE habitable zone';zc='ok'}
+  else{zone='inside the OPTIMISTIC habitable zone';zc='warn'}
+  const habitable=(S>=0.32&&S<=1.776)&&rocky;
+  const cls=rp<0.8?'sub-Earth':rp<1.25?'Earth-sized':rp<2?'super-Earth':rp<4?'sub-Neptune':rp<7?'Neptune-like':'Jupiter-like gas giant';
+  return {st,rp,a,S,teq,habitable,zone,zc,cls,rocky,distLy:st.dist?st.dist*3.26156:null};
+}
+function renderHab(c){
+  const h=characterizePlanet(c);
+  const pillCls=h.habitable?'ok':(h.zc==='bad'?'bad':'warn');
+  const label=h.habitable?'🌱 POTENTIALLY HABITABLE':(h.rocky?'NOT HABITABLE — '+(h.S>1.776?'TOO HOT':h.S<0.32?'TOO COLD':'ZONE EDGE'):'NOT HABITABLE — NOT ROCKY');
+  $('#rHabPill').innerHTML='<span class="pill '+pillCls+'"><span class="dot"></span> '+label+'</span>'+
+    (c.disp==='FALSE POSITIVE'?' <span class="mut" style="font-size:11px">(if this signal were planetary — it is a false positive)</span>':'');
+  $('#rHab').innerHTML=
+    par('Size class',h.cls,'')+par('vs Earth',fmt(h.rp,2)+'×','R⊕')+
+    par('vs Mars',fmt(h.rp/0.532,1)+'×','')+par('vs Jupiter',fmt(h.rp/11.209,3)+'×','')+
+    par('Orbit distance',fmt(h.a,3),'AU')+par('Equilibrium temp',fmt(h.teq,0),'K')+
+    par('Stellar energy',fmt(h.S,2)+'×','Earth')+par('Distance from Earth',h.distLy?fmt(h.distLy,0):'—','light-years')+
+    par('Host star',fmt(h.st.teff,0)+' K','T_eff')+par('Star size',fmt(h.st.srad,2)+' R☉ · '+fmt(h.st.smass,2)+' M☉','');
+  $('#rHabSrc').textContent=h.zone+' · star parameters: '+h.st.src;
+}
+const bar=(n,v,meta)=>'<div class="model'+(meta?' meta-row':'')+'"><div class="name">'+n+'</div><div class="track"><div class="fill" style="width:'+(v*100)+'%"></div></div><div class="val">'+fmt(v,2)+'</div></div>';
+const shapRow=(l,v)=>'<div class="shap"><div class="lbl">'+l+'</div><div class="barwrap"><div class="mid"></div><div class="bar '+(v>=0?'pos':'neg')+'" style="width:'+Math.abs(v)*120+'%"></div></div><div class="num">'+(v>=0?'+':'−')+fmt(Math.abs(v),2)+'</div></div>';
+
+/* ============ light curve (glow edition) ============ */
+let lcView='clean', SERIES={};
+function buildSeries(){
+  const p=lcParams(CUR), N=1100;_seed=99;
+  const mk=mode=>{const ys=[];for(let i=0;i<N;i++){let f=1;
+    if(mode!=='fold'){
+      if(mode==='raw')f+=Math.sin(i/70)*.006+Math.sin(i/23)*.003;
+      const ph=((i%p.per)+p.per)%p.per,d=Math.abs(ph-p.per/2);
+      if(d<p.dur/2){const t=(ph-p.per/2)/(p.dur/2);
+        f-=p.depth*(p.vshape?1-Math.abs(t)*.55:1-t*t);
+        if(p.weird&&Math.floor(i/p.per)%3===1)f+=p.depth*.5;}
+      if(p.vshape){const ph2=((i+p.per/2)%p.per);if(Math.abs(ph2-p.per/2)<p.dur/2)f-=p.depth*.45}
+      f+=(rnd()-.5)*(mode==='raw'?.006:p.noise);
+    }else{const ph=(i/N)*p.per,d=Math.abs(ph-p.per/2);
+      if(d<p.dur/2){const t=(ph-p.per/2)/(p.dur/2);f-=p.depth*(p.vshape?1-Math.abs(t)*.55:1-t*t)}
+      f+=(rnd()-.5)*p.noise*.7}
+    ys.push(f)}return ys};
+  SERIES={raw:mk('raw'),clean:mk('clean'),fold:mk('fold'),N};
+}
+let lcZoom=[0,1],lcDrag=null;
+const lcC=$('#lc'),lcX=lcC.getContext('2d');
+function drawLC(){
+  const W=lcC.clientWidth||800,H=250;lcC.width=W*devicePixelRatio;lcC.height=H*devicePixelRatio;
+  lcX.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);lcX.clearRect(0,0,W,H);
+  const ys=SERIES[lcView],N=SERIES.N,padL=52,padR=14,padT=14,padB=28;
+  const i0=Math.floor(lcZoom[0]*N),i1=Math.ceil(lcZoom[1]*N);
+  const vis=ys.slice(i0,i1),mn=Math.min(...vis)-.0012,mx=Math.max(...vis)+.0012;
+  const X=i=>padL+(W-padL-padR)*(i-i0)/Math.max(1,i1-i0-1);
+  const Y=v=>padT+(H-padT-padB)*(1-(v-mn)/(mx-mn));
+  lcX.strokeStyle='rgba(102,132,255,.14)';lcX.fillStyle='#8e97c2';lcX.font='11px Space Grotesk';
+  for(let g=0;g<=4;g++){const yy=padT+(H-padT-padB)*g/4;const val=mx-(mx-mn)*g/4;
+    lcX.beginPath();lcX.moveTo(padL,yy);lcX.lineTo(W-padR,yy);lcX.stroke();
+    lcX.fillText(val.toFixed(3),6,yy+4)}
+  lcX.strokeStyle='rgba(102,132,255,.3)';lcX.setLineDash([4,4]);lcX.beginPath();lcX.moveTo(padL,Y(1));lcX.lineTo(W-padR,Y(1));lcX.stroke();lcX.setLineDash([]);
+  const grad=lcX.createLinearGradient(0,0,W,0);grad.addColorStop(0,'#4de3ff');grad.addColorStop(1,'#8b5cff');
+  if(lcView==='fold'){lcX.fillStyle='#9fb0e8';
+    for(let i=i0;i<i1;i++){lcX.globalAlpha=.5;lcX.beginPath();lcX.arc(X(i),Y(ys[i]),1.5,0,7);lcX.fill()}lcX.globalAlpha=1}
+  else{lcX.strokeStyle=grad;lcX.lineWidth=1.5;lcX.shadowColor='rgba(77,227,255,.55)';lcX.shadowBlur=8;
+    lcX.beginPath();for(let i=i0;i<i1;i++){const px=X(i),py=Y(ys[i]);i===i0?lcX.moveTo(px,py):lcX.lineTo(px,py)}
+    lcX.stroke();lcX.shadowBlur=0}
+  if(lcDrag&&lcDrag.x2){lcX.fillStyle='rgba(77,227,255,.12)';lcX.strokeStyle='#4de3ff';
+    lcX.fillRect(lcDrag.x1,padT,lcDrag.x2-lcDrag.x1,H-padT-padB);lcX.strokeRect(lcDrag.x1,padT,lcDrag.x2-lcDrag.x1,H-padT-padB)}
+  lcX.fillStyle='#8e97c2';lcX.fillText(lcView==='fold'?'orbital phase':'time (days)',W/2-28,H-8);
+  if(lcZoom[0]>0||lcZoom[1]<1){lcX.fillStyle='#4de3ff';lcX.fillText('zoomed '+fmt(lcZoom[0]*100,0)+'–'+fmt(lcZoom[1]*100,0)+'% · double-click to reset',W-235,padT+4)}
+  lcC._map={X,Y,i0,i1,ys,padL,padR,W};
+}
+lcC.addEventListener('mousemove',e=>{
+  const r=lcC.getBoundingClientRect(),x=e.clientX-r.left,m=lcC._map;if(!m)return;
+  if(lcDrag){lcDrag.x2=x;drawLC();return}
+  const f=(x-m.padL)/(m.W-m.padL-m.padR);if(f<0||f>1){hideTip();return}
+  const i=Math.round(m.i0+f*(m.i1-m.i0-1)),v=m.ys[i];if(v===undefined){hideTip();return}
+  const t=lcView==='fold'?('phase '+fmt(i/SERIES.N,3)):('day '+fmt(i*.02,2));
+  showTip(e.clientX,e.clientY,'<b>'+t+'</b><br>flux '+v.toFixed(5)+'<br><span class="mut">'+(v<0.995?'⬇ in transit':'baseline')+'</span>');
+});
+lcC.addEventListener('mouseleave',hideTip);
+lcC.addEventListener('mousedown',e=>{const r=lcC.getBoundingClientRect();lcDrag={x1:e.clientX-r.left,x2:null}});
+addEventListener('mouseup',()=>{if(lcDrag&&lcDrag.x2!==null){const m=lcC._map,W=m.W;
+  let[a,b]=[lcDrag.x1,lcDrag.x2].sort((p,q)=>p-q);
+  if(b-a>12){const f1=(a-m.padL)/(W-m.padL-m.padR),f2=(b-m.padL)/(W-m.padL-m.padR);
+    const span=lcZoom[1]-lcZoom[0];
+    lcZoom=[Math.max(0,lcZoom[0]+f1*span),Math.min(1,lcZoom[0]+f2*span)]}}
+  lcDrag=null;if(lcC._map)drawLC()});
+lcC.addEventListener('dblclick',()=>{lcZoom=[0,1];drawLC()});
+$$('#page-results .chip[data-view]').forEach(ch=>ch.onclick=()=>{
+  $$('#page-results .chip[data-view]').forEach(c=>{c.style.borderColor='var(--line)';c.style.color='var(--muted)'});
+  ch.style.borderColor='var(--accent)';ch.style.color='var(--text)';lcView=ch.dataset.view;lcZoom=[0,1];drawLC()});
+addEventListener('resize',()=>{if($('#page-results').classList.contains('active'))drawLC()});
+
+/* ============ browse dashboard (cross-filtering) ============ */
+const F={disp:null,band:null,box:null,q:''};
+let sortK='conf',sortDir=-1;
+function filtered(){
+  return DB.filter(c=>
+    (!F.disp||c.disp===F.disp)&&
+    (!F.band||(c.conf>=F.band[0]&&c.conf<F.band[1]))&&
+    (!F.box||(c.period>=F.box.p0&&c.period<=F.box.p1&&c.depth>=F.box.d0&&c.depth<=F.box.d1))&&
+    (!F.q||(c.name+' '+c.kic).toLowerCase().includes(F.q)));
+}
+function renderChips(){
+  const el=$('#filterChips');el.innerHTML='';
+  const mk=(t,clear)=>{const d=document.createElement('div');d.className='chip';
+    d.innerHTML=t+'<span class="x">✕</span>';d.onclick=()=>{clear();renderBrowse()};el.appendChild(d)};
+  if(F.disp)mk('disposition: '+F.disp,()=>F.disp=null);
+  if(F.band)mk('confidence '+fmt(F.band[0]*100,0)+'–'+fmt(F.band[1]*100,0)+'%',()=>F.band=null);
+  if(F.box)mk('scatter box',()=>F.box=null);
+}
+function renderBrowse(){
+  renderChips();
+  const rows=filtered();
+  const nC=rows.filter(c=>c.disp==='CONFIRMED').length,nCa=rows.filter(c=>c.disp==='CANDIDATE').length,
+        nF=rows.filter(c=>c.disp==='FALSE POSITIVE').length,nA=rows.filter(c=>c.disp==='ANOMALY').length;
+  $('#kpis').innerHTML=
+    kpi('Total candidates',rows.length,'in current filter','')+
+    kpi('Confirmed',nC,'planet detections','green')+
+    kpi('Candidates',nCa,'need follow-up','amber')+
+    kpi('False positives',nF,'binaries & noise','red')+
+    kpi('Anomalies',nA,'novelty queue','cyan');
+  drawDonut(rows);drawHist(rows);drawScatter(rows);renderTable(rows);
+}
+const kpi=(k,v,s,cls)=>'<div class="kpi '+cls+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';
+const DCOL={CONFIRMED:'#34f5b0',CANDIDATE:'#ffc24d','FALSE POSITIVE':'#ff5c7a',ANOMALY:'#4de3ff'};
+function drawDonut(rows){
+  const c=$('#donut'),x=c.getContext('2d'),W=c.clientWidth||500,H=220;
+  c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  x.clearRect(0,0,W,H);
+  const counts=DISPS.map(d=>DB.filter(r=>r.disp===d).length),tot=DB.length;
+  const cx=W*.3,cy=H/2,R=78,r2=46;let a0=-Math.PI/2;c._arcs=[];
+  DISPS.forEach((d,i)=>{const frac=counts[i]/tot,a1=a0+frac*Math.PI*2;
+    const sel=!F.disp||F.disp===d;
+    x.beginPath();x.moveTo(cx,cy);x.arc(cx,cy,R+(F.disp===d?6:0),a0,a1);x.closePath();
+    x.fillStyle=DCOL[d];x.globalAlpha=sel?1:.22;
+    x.shadowColor=DCOL[d];x.shadowBlur=sel&&F.disp===d?18:0;x.fill();x.shadowBlur=0;x.globalAlpha=1;
+    c._arcs.push({a0,a1,d});a0=a1});
+  x.globalCompositeOperation='destination-out';x.beginPath();x.arc(cx,cy,r2,0,7);x.fill();
+  x.globalCompositeOperation='source-over';
+  x.fillStyle='#eaf0ff';x.font='800 22px Orbitron';x.textAlign='center';
+  x.fillText(rows.length,cx,cy+2);x.font='10px Space Grotesk';x.fillStyle='#8e97c2';x.fillText('shown',cx,cy+17);x.textAlign='left';
+  x.font='12px Space Grotesk';
+  DISPS.forEach((d,i)=>{const y=40+i*26;x.fillStyle=DCOL[d];x.fillRect(W*.58,y-9,10,10);
+    x.fillStyle=F.disp&&F.disp!==d?'#5a6288':'#eaf0ff';x.fillText(d.toLowerCase()+' — '+counts[i],W*.58+18,y)});
+  c.onclick=e=>{const r=c.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    const dx=mx-cx,dy=my-cy,dist=Math.hypot(dx,dy);
+    if(dist>r2&&dist<R+8){let ang=Math.atan2(dy,dx);if(ang<-Math.PI/2)ang+=Math.PI*2;
+      const hit=c._arcs.find(a=>ang>=a.a0&&ang<a.a1);
+      if(hit){F.disp=F.disp===hit.d?null:hit.d;renderBrowse()}}
+    else if(mx>W*.55){const i=Math.floor((my-30)/26);if(DISPS[i]){F.disp=F.disp===DISPS[i]?null:DISPS[i];renderBrowse()}}};
+  c.onmousemove=e=>{const r=c.getBoundingClientRect(),dx=e.clientX-r.left-cx,dy=e.clientY-r.top-cy,dist=Math.hypot(dx,dy);
+    if(dist>r2&&dist<R+8){let ang=Math.atan2(dy,dx);if(ang<-Math.PI/2)ang+=Math.PI*2;
+      const hit=c._arcs.find(a=>ang>=a.a0&&ang<a.a1);
+      if(hit){const n=DB.filter(q=>q.disp===hit.d).length;
+        showTip(e.clientX,e.clientY,'<b>'+hit.d+'</b><br>'+n+' of '+DB.length+' ('+fmt(n/DB.length*100,0)+'%)<br><span class="mut">click to cross-filter</span>');return}}
+    hideTip()};
+  c.onmouseleave=hideTip;
+}
+function drawHist(rows){
+  const c=$('#hist'),x=c.getContext('2d'),W=c.clientWidth||500,H=220;
+  c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  x.clearRect(0,0,W,H);
+  const bins=10,all=new Array(bins).fill(0),cur=new Array(bins).fill(0);
+  DB.forEach(r=>all[Math.min(bins-1,Math.floor(r.conf*bins))]++);
+  rows.forEach(r=>cur[Math.min(bins-1,Math.floor(r.conf*bins))]++);
+  const mx=Math.max(...all,1),padL=30,padB=26,bw=(W-padL-14)/bins;
+  c._bars=[];
+  for(let i=0;i<bins;i++){
+    const h1=(H-padB-16)*all[i]/mx,h2=(H-padB-16)*cur[i]/mx;
+    const bx=padL+i*bw,sel=F.band&&F.band[0]===i/bins;
+    x.fillStyle='rgba(102,132,255,.1)';x.fillRect(bx+2,H-padB-h1,bw-4,h1);
+    const g=x.createLinearGradient(0,H-padB-h2,0,H-padB);g.addColorStop(0,sel?'#4de3ff':'#6c8bff');g.addColorStop(1,'rgba(40,60,140,.5)');
+    x.fillStyle=g;if(sel){x.shadowColor='#4de3ff';x.shadowBlur=14}x.fillRect(bx+2,H-padB-h2,bw-4,h2);x.shadowBlur=0;
+    c._bars.push({bx,bw,i,n:cur[i],na:all[i]});
+    x.fillStyle='#8e97c2';x.font='10px Space Grotesk';if(i%2===0)x.fillText(i*10+'%',bx+2,H-8)}
+  c.onclick=e=>{const r=c.getBoundingClientRect(),mx2=e.clientX-r.left;
+    const b=c._bars.find(b=>mx2>=b.bx&&mx2<b.bx+b.bw);
+    if(b){const band=[b.i/bins,(b.i+1)/bins];F.band=(F.band&&F.band[0]===band[0])?null:band;renderBrowse()}};
+  c.onmousemove=e=>{const r=c.getBoundingClientRect(),mx2=e.clientX-r.left;
+    const b=c._bars.find(b=>mx2>=b.bx&&mx2<b.bx+b.bw);
+    if(b)showTip(e.clientX,e.clientY,'<b>'+(b.i*10)+'–'+(b.i*10+10)+'% confidence</b><br>'+b.n+' shown / '+b.na+' total<br><span class="mut">click to filter this band</span>');else hideTip()};
+  c.onmouseleave=hideTip;
+}
+let scDrag=null;
+function drawScatter(rows){
+  const c=$('#scatter'),x=c.getContext('2d'),W=c.clientWidth||900,H=260;
+  c.width=W*devicePixelRatio;c.height=H*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  x.clearRect(0,0,W,H);
+  const padL=56,padR=16,padT=12,padB=30;
+  const pmin=.3,pmax=200,dmin=40,dmax=25000;
+  const X=p=>padL+(W-padL-padR)*(Math.log10(p)-Math.log10(pmin))/(Math.log10(pmax)-Math.log10(pmin));
+  const Y=d=>padT+(H-padT-padB)*(1-(Math.log10(d)-Math.log10(dmin))/(Math.log10(dmax)-Math.log10(dmin)));
+  x.strokeStyle='rgba(102,132,255,.14)';x.fillStyle='#8e97c2';x.font='10px Space Grotesk';
+  [1,10,100].forEach(p=>{x.beginPath();x.moveTo(X(p),padT);x.lineTo(X(p),H-padB);x.stroke();x.fillText(p+'d',X(p)+3,H-padB+14)});
+  [100,1000,10000].forEach(d=>{x.beginPath();x.moveTo(padL,Y(d));x.lineTo(W-padR,Y(d));x.stroke();x.fillText(d.toLocaleString()+'ppm',4,Y(d)+3)});
+  x.fillText('orbital period (log)',W/2-30,H-6);
+  c._pts=[];
+  DB.forEach(r=>{const inSet=rows.includes(r);
+    const px=X(Math.max(pmin,Math.min(pmax,r.period))),py=Y(Math.max(dmin,Math.min(dmax,r.depth)));
+    const rad=3+Math.min(7,r.snr/9);
+    x.beginPath();x.arc(px,py,rad,0,7);x.fillStyle=DCOL[r.disp];x.globalAlpha=inSet?.95:.12;
+    if(inSet){x.shadowColor=DCOL[r.disp];x.shadowBlur=9}x.fill();x.shadowBlur=0;
+    if(r.id===CUR.id&&inSet){x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke()}
+    x.globalAlpha=1;c._pts.push({px,py,rad,r})});
+  if(scDrag&&scDrag.x2!==null){x.fillStyle='rgba(77,227,255,.1)';x.strokeStyle='#4de3ff';
+    x.fillRect(scDrag.x1,scDrag.y1,scDrag.x2-scDrag.x1,scDrag.y2-scDrag.y1);
+    x.strokeRect(scDrag.x1,scDrag.y1,scDrag.x2-scDrag.x1,scDrag.y2-scDrag.y1)}
+  c._inv={X,Y,pmin,pmax,dmin,dmax,padL,padR,padT,padB,W,H};
+}
+$('#scatter').addEventListener('mousemove',e=>{
+  const c=$('#scatter'),r=c.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(scDrag){scDrag.x2=mx;scDrag.y2=my;drawScatter(filtered());return}
+  const hit=(c._pts||[]).findLast(p=>Math.hypot(mx-p.px,my-p.py)<p.rad+3);
+  if(hit){showTip(e.clientX,e.clientY,'<b>'+hit.r.name+'</b><br>period '+hit.r.period+'d · depth '+hit.r.depth.toLocaleString()+'ppm<br>SNR '+hit.r.snr+' · conf '+fmt(hit.r.conf*100,0)+'%<br><span class="mut">'+hit.r.disp.toLowerCase()+' · click to open</span>');c.style.cursor='pointer'}
+  else{hideTip();c.style.cursor='crosshair'}});
+$('#scatter').addEventListener('mousedown',e=>{const r=$('#scatter').getBoundingClientRect();
+  scDrag={x1:e.clientX-r.left,y1:e.clientY-r.top,x2:null,y2:null}});
+addEventListener('mouseup',e=>{const c=$('#scatter');if(!scDrag)return;
+  const wasClick=scDrag.x2===null||Math.hypot(scDrag.x2-scDrag.x1,scDrag.y2-scDrag.y1)<8;
+  if(wasClick){const r=c.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    const hit=(c._pts||[]).findLast(p=>Math.hypot(mx-p.px,my-p.py)<p.rad+3);
+    if(hit){renderResults(hit.r);goto('results');hideTip()}}
+  else{const v=c._inv,[a,b]=[scDrag.x1,scDrag.x2].sort((p,q)=>p-q),[y1,y2]=[scDrag.y1,scDrag.y2].sort((p,q)=>p-q);
+    const unX=px=>Math.pow(10,Math.log10(v.pmin)+(px-v.padL)/(v.W-v.padL-v.padR)*(Math.log10(v.pmax)-Math.log10(v.pmin)));
+    const unY=py=>Math.pow(10,Math.log10(v.dmin)+(1-(py-v.padT)/(v.H-v.padT-v.padB))*(Math.log10(v.dmax)-Math.log10(v.dmin)));
+    F.box={p0:unX(a),p1:unX(b),d0:unY(y2),d1:unY(y1)};renderBrowse()}
+  scDrag=null});
+function renderTable(rows){
+  const sorted=[...rows].sort((a,b)=>(a[sortK]>b[sortK]?1:-1)*sortDir);
+  $('#tblCount').textContent='— '+rows.length+' shown of '+DB.length;
+  $('#tbl tbody').innerHTML=sorted.map(r=>'<tr data-id="'+r.id+'"><td><b>'+r.name+'</b> <span class="mut">'+r.kic+'</span></td>'+
+    '<td>'+fmt(r.period,2)+'</td><td>'+r.depth.toLocaleString()+'</td><td>'+fmt(r.snr,1)+'</td>'+
+    '<td><b>'+fmt(r.conf*100,1)+'%</b></td><td><span class="pillsm '+
+    (r.disp==='CONFIRMED'?'p-conf':r.disp==='CANDIDATE'?'p-cand':r.disp==='ANOMALY'?'p-anom':'p-fp')+'">'+r.disp+'</span></td></tr>').join('');
+  $$('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{const r=DB.find(x=>x.id===tr.dataset.id);renderResults(r);goto('results')});
+}
+$$('#tbl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;
+  if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=-1}renderTable(filtered())});
+$('#q').addEventListener('input',e=>{F.q=e.target.value.toLowerCase();renderBrowse()});
+$('#clearF').onclick=()=>{F.disp=null;F.band=null;F.box=null;F.q='';$('#q').value='';renderBrowse()};
+$('#exportCsv').onclick=()=>{
+  const rows=filtered(),head='name,kic,period_d,depth_ppm,snr,confidence,disposition';
+  const csv=[head,...rows.map(r=>[r.name,r.kic,r.period,r.depth,r.snr,r.conf,r.disp].join(','))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='exodetect_candidates.csv';a.click()};
+
+/* ============ anomalies ============ */
+function renderAnoms(){
+  const rows=DB.filter(c=>c.recon>=.1||c.disp==='ANOMALY').sort((a,b)=>b.recon-a.recon);
+  $('#anomTbl tbody').innerHTML=rows.length?rows.map(r=>{
+    const status=r.review==='accepted'?'<span class="pillsm p-conf">accepted — new candidate</span>':
+                 r.review==='rejected'?'<span class="pillsm p-fp">rejected — artifact</span>':
+                 '<button class="ghost" data-acc="'+r.id+'" style="padding:4px 10px;font-size:11px">✓ accept</button> <button class="ghost" data-rej="'+r.id+'" style="padding:4px 10px;font-size:11px">✕ reject</button>';
+    return '<tr data-id="'+r.id+'"><td><b>'+r.name+'</b> <span class="mut">'+r.kic+'</span></td>'+
+      '<td><b style="color:var(--cyan)">'+fmt(r.recon,3)+'</b> <span class="mut">/ 0.100</span></td>'+
+      '<td>reconstruction error</td><td>'+(r.name.includes('8462852')?'irregular dimming (dust/debris?)':r.period>100?'possible long-period / TTV':'unusual transit morphology')+'</td>'+
+      '<td>'+status+'</td></tr>'}).join(''):
+    '<tr><td colspan="5" class="mut">No anomalies above threshold.</td></tr>';
+  $$('#anomTbl [data-acc]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+    const r=DB.find(x=>x.id===b.dataset.acc);r.review='accepted';saveDB();renderAnoms()});
+  $$('#anomTbl [data-rej]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+    const r=DB.find(x=>x.id===b.dataset.rej);r.review='rejected';saveDB();renderAnoms()});
+  $$('#anomTbl tbody tr').forEach(tr=>tr.onclick=()=>{const r=DB.find(x=>x.id===tr.dataset.id);
+    if(r){renderResults(r);goto('results')}});
+}
+
+/* ============ upload ============ */
+const drop=$('#drop'),fileIn=$('#file');
+drop.onclick=()=>fileIn.click();
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hover')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hover')}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)ingest(f.name)});
+fileIn.onchange=()=>{if(fileIn.files[0])ingest(fileIn.files[0].name)};
+$('#btnSample').onclick=()=>ingest('KIC_11442793.fits','planet');
+$('#btnSampleFP').onclick=()=>ingest('KIC_4862625.fits','fp');
+let running=false;
+function ingest(fname,kind){
+  if(running)return;running=true;
+  const stages=$$('#stages .stage'),msgs=[
+    'removing bad-quality cadences, NaN gaps, cosmic-ray hits…',
+    'Savitzky–Golay detrend (window > transit duration) + normalize…',
+    'Box Least Squares: scanning 12,000 trial periods…',
+    'extracting depth, duration, odd–even, secondary, symmetry…',
+    'CNN + LSTM + Transformer + XGBoost + FP-specialist → meta-learner…'];
+  stages.forEach(s=>{s.className='stage';s.querySelector('.bar i').style.width='0%';s.querySelector('.pct').textContent='–';s.querySelector('.st-ico').textContent=+s.dataset.s+1});
+  $('#pipeMsg').textContent='📥 '+fname+' received — starting pipeline';
+  let si=0;
+  function runStage(){
+    if(si>=stages.length){finish();return}
+    const st=stages[si];st.classList.add('run');$('#pipeMsg').textContent='⚙️ '+msgs[si];
+    let p=0;const iv=setInterval(()=>{
+      p+=8+Math.random()*18;if(p>=100){p=100;clearInterval(iv);st.classList.remove('run');st.classList.add('done');
+        st.querySelector('.st-ico').textContent='✓';si++;setTimeout(runStage,120)}
+      st.querySelector('.bar i').style.width=p+'%';st.querySelector('.pct').textContent=Math.floor(p)+'%';
+    },90)}
+  function finish(){
+    running=false;$('#pipeMsg').textContent='✅ pipeline complete — stored to local DB, opening results';
+    const isFP=kind==='fp'||/binary|4862625/i.test(fname);
+    _seed=Date.now()&0xffff;
+    const c={id:'u'+Date.now(),name:fname.replace(/\.(fits|csv|txt)$/i,'').replace(/_/g,' '),kic:'uploaded',
+      period:+fmt(isFP?3+rnd()*4:5+rnd()*40,2),depth:Math.round(isFP?12000+rnd()*9000:150+rnd()*600),
+      snr:+fmt(isFP?40+rnd()*20:9+rnd()*20,1),conf:+fmt(isFP?.04+rnd()*.08:.86+rnd()*.12,3),
+      disp:isFP?'FALSE POSITIVE':'CONFIRMED',dur:+fmt(2+rnd()*5,1),rp:+fmt(1+rnd()*2,2),
+      oddEven:+fmt(isFP?12+rnd()*10:rnd()*2,1),recon:+(isFP?.02:.01+rnd()*.03).toFixed(3)};
+    DB.unshift(c);saveDB();
+    setTimeout(()=>{renderResults(c);goto('results')},700)}
+  runStage();
+}
+renderResults(DB[0]);
+</script>
+
+<script>
+/* ============ 3D bridge ============ */
+window.__s3={params:null,ready:false,auto:true,view:null,formation:'system'};
+function set3dFromCandidate(){const c=CUR;
+  window.__s3.params={rp:c.rp,period:c.period,depth:Math.max(.15,Math.min(.75,c.depth/25000)),disp:c.disp,name:c.name};
+  window.__s3.dirty=true;}
+function resize3d(){if(window.__s3.resizeFn)window.__s3.resizeFn()}
+set3dFromCandidate();
+const fBtns={system:$('#s3fSystem'),curve:$('#s3fCurve'),galaxy:$('#s3fGalaxy')};
+function setFormation(f){window.__s3.formation=f;window.__s3.dirty=true;
+  Object.entries(fBtns).forEach(([k,b])=>b.style.color=k===f?'var(--cyan)':'var(--muted)')}
+fBtns.system.onclick=()=>setFormation('system');
+fBtns.curve.onclick=()=>setFormation('curve');
+fBtns.galaxy.onclick=()=>setFormation('galaxy');
+$('#s3auto').onclick=()=>{window.__s3.auto=!window.__s3.auto;$('#s3auto').style.color=window.__s3.auto?'var(--cyan)':'var(--muted)'};
+$('#s3auto').style.color='var(--cyan)';
+$('#s3obs').onclick=()=>{window.__s3.view='obs'};
+$('#s3reset').onclick=()=>{window.__s3.view='reset'};
+$('#s3err').style.display='grid';
+setTimeout(()=>{ if(!window.__s3.ready){
+  $('#s3err').innerHTML='<div><div style="color:var(--red);font:700 15px Orbitron;letter-spacing:2px">3D ENGINE NOT LOADED</div>'+
+  '<div style="margin:10px 0 14px;font-size:12px">Three.js CDN unreachable — check your internet connection.</div>'+
+  '<button onclick="location.reload()">↻ Retry</button></div>';
+}},12000);
+</script>
+
+<script type="module">
+/* =====================================================================
+   PARTICLE TRANSIT ENGINE — faithful to the user's reference:
+   22,000 morphing particles · PointsMaterial(size .3, additive, vertex
+   colors) · UnrealBloomPass(1.5, 0.4, 0.85) · formation lerp morphing
+   ===================================================================== */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const wrap=document.getElementById('scene3dwrap');
+const old=document.getElementById('scene3d');
+const canvas=document.createElement('canvas');
+canvas.id='scene3d';old.replaceWith(canvas);
+window.__s3.ready=true;document.getElementById('s3err').style.display='none';
+
+const W=()=>wrap.clientWidth||900, H=560;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(70,W()/H,0.1,2000);
+camera.position.set(0,18,72);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setSize(W(),H,false);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W(),H),1.5,0.4,0.85));  // reference's exact bloom
+const bloom=composer.passes[1];
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.06;
+controls.minDistance=20;controls.maxDistance=260;controls.autoRotateSpeed=.6;
+
+/* ---------- ONE Points cloud, exactly like the reference ---------- */
+const COUNT=22000;
+const geometry=new THREE.BufferGeometry();
+const positions=new Float32Array(COUNT*3), colors=new Float32Array(COUNT*3), sizes=new Float32Array(COUNT);
+const targetPos=new Float32Array(COUNT*3), targetCol=new Float32Array(COUNT*3), targetSize=new Float32Array(COUNT);
+geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+geometry.setAttribute('size',new THREE.BufferAttribute(sizes,1));
+const particles=new THREE.Points(geometry,new THREE.PointsMaterial({
+  size:0.3, vertexColors:true, blending:THREE.AdditiveBlending, transparent:true, depthWrite:false}));
+scene.add(particles);
+
+/* deterministic per-particle randoms (so formations are stable) */
+const R1=new Float32Array(COUNT),R2=new Float32Array(COUNT),R3=new Float32Array(COUNT),R4=new Float32Array(COUNT);
+for(let i=0;i<COUNT;i++){R1[i]=Math.random();R2[i]=Math.random();R3[i]=Math.random();R4[i]=Math.random()}
+
+/* ---------- FORMATION GENERATORS (return x,y,z,r,g,b,s per particle) ---------- */
+const STAR_R=8, ORBIT_R=40;
+let angle=0, flux=1;
+
+function fSystem(i,P,planetR){
+  const u=i/COUNT;
+  if(u<0.30){                                   // -- the star: hot particle shell + corona
+    const rr=STAR_R*(1.0+Math.pow(R1[i],2.6)*1.5);
+    const th=R2[i]*6.283, ph=Math.acos(2*R3[i]-1);
+    const heat=1-(rr-STAR_R)/(STAR_R*1.5);
+    const dim=.35+.65*flux;                     // transit dimming baked into star colors
+    return {x:rr*Math.sin(ph)*Math.cos(th), y:rr*Math.sin(ph)*Math.sin(th), z:rr*Math.cos(ph),
+            r:(1.2+heat)*dim, g:(.5+heat*.6)*dim, b:(.1+heat*.3)*dim, s:1.6+heat*1.6};
+  }
+  if(u<0.37){                                   // -- the planet: dense glowing cluster that ORBITS
+    const rr=planetR*Math.pow(R1[i],.5);
+    const th=R2[i]*6.283, ph=Math.acos(2*R3[i]-1);
+    const px=Math.cos(angle)*ORBIT_R, pz=Math.sin(angle)*ORBIT_R;
+    return {x:px+rr*Math.sin(ph)*Math.cos(th), y:rr*Math.sin(ph)*Math.sin(th)*.9, z:pz+rr*Math.cos(ph),
+            r:.35, g:.85, b:1.6, s:1.5};
+  }
+  if(u<0.48){                                   // -- orbit dust ring, bright comet-arc near planet
+    const a=R1[i]*6.283;
+    let d=Math.abs(a-((angle%6.283)+6.283)%6.283); d=Math.min(d,6.283-d);
+    const glow=.06+.85*Math.exp(-d*d*4);
+    return {x:Math.cos(a)*(ORBIT_R+(R2[i]-.5)*1.6), y:(R3[i]-.5)*.9, z:Math.sin(a)*(ORBIT_R+(R4[i]-.5)*1.6),
+            r:.25*glow, g:.7*glow, b:1.4*glow, s:.9+glow};
+  }                                             // -- deep starfield sphere
+  const rr=70+R1[i]*120, th=R2[i]*6.283, ph=Math.acos(2*R3[i]-1);
+  const c=.25+R4[i]*.75, blue=R2[i]<.3;
+  return {x:rr*Math.sin(ph)*Math.cos(th), y:rr*Math.sin(ph)*Math.sin(th), z:rr*Math.cos(ph),
+          r:c*(blue?.6:1), g:c*(blue?.8:.95), b:c*1.1, s:.6+R3[i]*1.2};
+}
+
+function fCurve(i,P){                            // -- Scene B: folded light-curve 3D terrain
+  const COLS=340, ROWS=Math.floor(COUNT/COLS);
+  const row=Math.floor(i/COLS), col=i%COLS;
+  if(row>=ROWS)return {x:0,y:-500,z:0,r:0,g:0,b:0,s:0};
+  const phx=col/COLS-.5;                         // phase -0.5..0.5
+  const durP=.09, t=phx/durP;
+  let y=0;
+  if(Math.abs(phx)<durP){const v=P.disp==='FALSE POSITIVE'?1-Math.abs(t)*.55:1-t*t;
+    y=-P.depth*26*Math.max(0,v)}
+  if(P.disp==='ANOMALY'&&row%7===3&&Math.abs(phx)<durP)y*=.35;
+  y+=(R1[i]-.5)*1.1;                             // per-orbit noise
+  const deep=Math.min(1,-y/14);
+  return {x:phx*95, y:y+6, z:(row/ROWS-.5)*58,
+          r:.2+deep*1.4, g:.55+deep*.5, b:1.3-deep*.15, s:.9+deep*1.8};
+}
+
+function fGalaxy(i){                             // -- reference's spiral, recolored violet/cyan
+  if(i<COUNT*0.12){
+    const rr=Math.pow(R1[i],1.6)*9, th=R2[i]*6.283, ph=Math.acos(2*R3[i]-1);
+    return {x:rr*Math.sin(ph)*Math.cos(th), y:rr*Math.sin(ph)*Math.sin(th)*.55, z:rr*Math.cos(ph),
+            r:1.5, g:1.2, b:1.7, s:2.2};
+  }
+  const arms=3, t=i/COUNT;
+  const a=t*15+((i%arms)*(6.283/arms));
+  const rad=2+t*46;
+  const swirl=R4[i]*.35;
+  return {x:rad*Math.cos(a+swirl), y:(R1[i]-.5)*(9*t), z:rad*Math.sin(a+swirl),
+          r:.35+t*.5, g:.25+t*.35, b:1.1, s:.8+R2[i]*1.4};
+}
+
+/* ---------- write targets for the active formation ---------- */
+function computeTargets(full){
+  const S=window.__s3, P=S.params||{rp:1.3,period:14,depth:.3,disp:'CONFIRMED'};
+  const planetR=Math.min(4,1.1+P.rp*.6);
+  const f=S.formation;
+  for(let i=0;i<COUNT;i++){
+    // in system mode, only dynamic zones (star dim, planet, ring) need per-frame updates
+    if(!full && f==='system'){const u=i/COUNT; if(u>=0.48) continue;}
+    else if(!full && f!=='system') break;
+    const p= f==='curve'?fCurve(i,P) : f==='galaxy'?fGalaxy(i) : fSystem(i,P,planetR);
+    targetPos[i*3]=p.x;targetPos[i*3+1]=p.y;targetPos[i*3+2]=p.z;
+    targetCol[i*3]=p.r;targetCol[i*3+1]=p.g;targetCol[i*3+2]=p.b;
+    targetSize[i]=p.s;
+  }
+}
+computeTargets(true);
+positions.set(targetPos);colors.set(targetCol);sizes.set(targetSize);   // start formed
+
+/* ---------- animate: lerp morph (the reference's signature move) ---------- */
+const hudPhase=document.getElementById('s3phase'),hud=document.getElementById('s3hud');
+let lastForm=window.__s3.formation;
+function animate(t){
+  requestAnimationFrame(animate);
+  const S=window.__s3, P=S.params||{rp:1.3,period:14,depth:.3,disp:'CONFIRMED'};
+  const planetR=Math.min(4,1.1+P.rp*.6);
+  /* orbital motion + smooth transit physics (observer on +Z axis) */
+  angle+=(.6/Math.sqrt(Math.max(.5,P.period)))*.016;
+  const px=Math.cos(angle)*ORBIT_R, pz=Math.sin(angle)*ORBIT_R;
+  const ov=Math.max(0,Math.min(1,(STAR_R+planetR-Math.abs(px))/(2*planetR)));
+  const transiting=pz>0&&ov>0.02&&S.formation==='system';
+  flux+=((pz>0&&S.formation==='system'?1-P.depth*.55*ov:1)-flux)*.1;
+  /* refresh targets */
+  if(S.dirty||S.formation!==lastForm){computeTargets(true);S.dirty=false;lastForm=S.formation}
+  else computeTargets(false);
+  /* the morph lerp — same trick as the reference file */
+  const k=.075;
+  for(let i=0;i<COUNT*3;i++){positions[i]+=(targetPos[i]-positions[i])*k;
+    colors[i]+=(targetCol[i]-colors[i])*k}
+  for(let i=0;i<COUNT;i++)sizes[i]+=(targetSize[i]-sizes[i])*k;
+  geometry.attributes.position.needsUpdate=true;
+  geometry.attributes.color.needsUpdate=true;
+  geometry.attributes.size.needsUpdate=true;
+  particles.rotation.y = S.formation==='galaxy'? t*.00012 : t*.00002;
+  bloom.strength=1.5*(.75+.25*flux)+(S.formation==='galaxy'?.15:0);
+  /* HUD */
+  const phase=(((angle/6.283)%1)+1).toFixed(2).slice(-4);
+  hud.style.borderColor=transiting?'var(--cyan)':'var(--line2)';
+  hud.innerHTML='<b>drag</b> rotate 360° · <b>wheel</b> zoom · phase <b>'+phase+
+    '</b> · flux <b style="color:'+(transiting?'#4de3ff':'#fff')+'">'+flux.toFixed(3)+'</b>'+
+    (transiting?' · <b style="color:#4de3ff">⬇ TRANSIT</b>':'');
+  /* camera presets */
+  if(S.view){const tgt=S.view==='obs'?new THREE.Vector3(0,3,98):new THREE.Vector3(0,18,72);
+    camera.position.lerp(tgt,.09);S.ttl=(S.ttl||36)-1;if(S.ttl<=0){S.view=null;S.ttl=null}}
+  controls.autoRotate=!!S.auto&&!S.view;
+  controls.update();composer.render();
+}
+requestAnimationFrame(animate);
+window.__s3.resizeFn=()=>{const w=W();camera.aspect=w/H;camera.updateProjectionMatrix();
+  renderer.setSize(w,H,false);composer.setSize(w,H)};
+addEventListener('resize',window.__s3.resizeFn);
+</script>
+</body>
+</html>

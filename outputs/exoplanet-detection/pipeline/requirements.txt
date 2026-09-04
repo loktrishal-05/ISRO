@@ -1,0 +1,11 @@
+# Stage 1-5 data pipeline dependencies
+lightkurve>=2.4        # download + handle Kepler/TESS light curves from MAST
+astropy>=5.3           # FITS + astronomy units (lightkurve depends on it)
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10            # Savitzky-Golay detrending, signal tools (later stages)
+transitleastsquares    # TLS period search (search.py, later stage)
+matplotlib>=3.7        # quick plots / sanity checks
+xgboost>=3.0           # trainer (auto-detected; numpy fallback exists)
+fastapi>=0.115         # api/main.py backend
+uvicorn[standard]>=0.30

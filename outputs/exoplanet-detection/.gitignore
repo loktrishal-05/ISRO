@@ -1,0 +1,18 @@
+# data + models never go to GitHub
+data/
+models/saved/
+data/**/*.npy
+data/**/*.csv
+*.npy
+*.npz
+*.fits
+*.h5
+*.pkl
+__pycache__/
+*.pyc
+.env
+node_modules/
+.DS_Store
+batch_run.log
+batch_retry.log
+models/saved_ablation*/
