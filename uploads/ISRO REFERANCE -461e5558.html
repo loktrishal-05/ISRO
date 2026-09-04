@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cursed Techniques & Bankai</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Serif+JP:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background-color: #000; font-family: 'Cinzel', serif; }
+
+        #ui {
+            position: absolute;
+            top: 5%;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            letter-spacing: 10px;
+            font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, #aaa 60%, #555 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+        }
+
+        #series-label {
+            font-size: 0.75rem;
+            letter-spacing: 6px;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        #technique-name {
+            font-size: 1.1rem;
+            margin-top: 14px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: color 0.6s ease, text-shadow 0.6s ease;
+        }
+
+        #character-name {
+            font-size: 0.7rem;
+            letter-spacing: 5px;
+            margin-top: 6px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            transition: color 0.5s;
+        }
+
+        /* Guide Panel */
+        #guide {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .guide-card {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 7px 10px;
+            width: 170px;
+            cursor: default;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .guide-card.active {
+            border-color: var(--active-color, #00ffff);
+            box-shadow: 0 0 12px var(--active-color, #00ffff);
+        }
+
+        .guide-card .card-title {
+            font-size: 0.55rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 3px;
+        }
+
+        .guide-card .card-name {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .guide-card .card-gesture {
+            font-size: 0.58rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 3px;
+        }
+
+        .sep {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 3px 0;
+        }
+
+        /* Video container */
+        #video-container {
+            position: absolute;
+            bottom: 2%;
+            left: 50%;
+            transform: translateX(-50%) scaleX(-1);
+            width: 300px;
+            height: 38vh;
+            border: 2px solid rgba(255,255,255,0.15);
+            z-index: 20;
+            background-color: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+        }
+
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+        #output_canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        #grain {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+        }
+
+        #flash-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            pointer-events: none; z-index: 50;
+            opacity: 0;
+            background: white;
+            transition: opacity 0.05s;
+        }
+    </style>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="grain"></div>
+<div id="flash-overlay"></div>
+
+<div id="ui">
+    <h1>呪術廻戦 ✦ 死神</h1>
+    <div id="series-label">Jujutsu Kaisen &nbsp;|&nbsp; Bleach</div>
+    <div id="technique-name" style="color:#00ffff; text-shadow:0 0 15px #00ffff;">STANDBY</div>
+    <div id="character-name">— Activate a hand gesture —</div>
+</div>
+
+<!-- Guide panel -->
+<div id="guide">
+    <div class="guide-card" id="card-purple" style="--active-color:#bb00ff">
+        <div class="card-title">JJK · Gojo</div>
+        <div class="card-name">Hollow Purple</div>
+        <div class="card-gesture">👌 Pinch</div>
+    </div>
+    <div class="guide-card" id="card-void" style="--active-color:#00ffff">
+        <div class="card-title">JJK · Gojo</div>
+        <div class="card-name">Infinite Void</div>
+        <div class="card-gesture">✌️ Index+Middle Up</div>
+    </div>
+    <div class="guide-card" id="card-red" style="--active-color:#ff3333">
+        <div class="card-title">JJK · Gojo</div>
+        <div class="card-name">Cursed Red</div>
+        <div class="card-gesture">☝️ Index Only Up</div>
+    </div>
+    <div class="guide-card" id="card-shrine" style="--active-color:#ff0000">
+        <div class="card-title">JJK · Sukuna</div>
+        <div class="card-name">Malevolent Shrine</div>
+        <div class="card-gesture">🖐️ Open Hand</div>
+    </div>
+    <div class="sep"></div>
+    <div class="guide-card" id="card-mahoraga" style="--active-color:#39ff14">
+        <div class="card-title">JJK · Megumi</div>
+        <div class="card-name">Eight-Handled Sword — Mahoraga</div>
+        <div class="card-gesture">🤟 Rock Sign (Index+Pinky)</div>
+    </div>
+    <div class="guide-card" id="card-uta" style="--active-color:#ff69b4">
+        <div class="card-title">JJK · Uta</div>
+        <div class="card-name">Copy — Thousand Slashes</div>
+        <div class="card-gesture">🤘 Thumb+Index+Middle</div>
+    </div>
+    <div class="sep"></div>
+    <div class="guide-card" id="card-senbonzakura" style="--active-color:#ffb7c5">
+        <div class="card-title">Bleach · Byakuya</div>
+        <div class="card-name">Bankai: Senbonzakura Kageyoshi</div>
+        <div class="card-gesture">🤙 Thumb+Pinky (Shaka)</div>
+    </div>
+    <div class="guide-card" id="card-ryujin" style="--active-color:#ff6600">
+        <div class="card-title">Bleach · Yamamoto</div>
+        <div class="card-name">Bankai: Zanka no Tachi</div>
+        <div class="card-gesture">✊ Fist (All Down)</div>
+    </div>
+    <div class="guide-card" id="card-soifon" style="--active-color:#ffffcc">
+        <div class="card-title">Bleach · Soifon</div>
+        <div class="card-name">Bankai: Jakuho Raikōben</div>
+        <div class="card-gesture">👆 Middle Only Up</div>
+    </div>
+</div>
+
+<div id="video-container">
+    <video class="input_video"></video>
+    <canvas id="output_canvas"></canvas>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// --- Scene ---
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 55;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85
+);
+composer.addPass(bloomPass);
+
+const COUNT = 22000;
+const geometry = new THREE.BufferGeometry();
+const positions    = new Float32Array(COUNT * 3);
+const colors       = new Float32Array(COUNT * 3);
+const sizes        = new Float32Array(COUNT);
+const targetPos    = new Float32Array(COUNT * 3);
+const targetCol    = new Float32Array(COUNT * 3);
+const targetSizes  = new Float32Array(COUNT);
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+geometry.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+
+const particles = new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: 0.3, vertexColors: true,
+    blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false
+}));
+scene.add(particles);
+
+// --- TECHNIQUE GENERATORS ---
+
+function getRed(i) {
+    if (i < COUNT * 0.1) {
+        const r = Math.random() * 9;
+        const theta = Math.random() * 6.28;
+        const phi = Math.acos(2 * Math.random() - 1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:3, g:0.1, b:0.1, s:2.5 };
+    }
+    const armCount = 3;
+    const t = i / COUNT;
+    const angle = t * 15 + ((i % armCount) * (Math.PI * 2 / armCount));
+    const radius = 2 + t * 40;
+    return { x: radius*Math.cos(angle), y: radius*Math.sin(angle), z: (Math.random()-0.5)*(10*t), r:0.8, g:0, b:0, s:1.0 };
+}
+
+function getVoid(i) {
+    if (i < COUNT * 0.15) {
+        const angle = Math.random() * Math.PI * 2;
+        return { x: 26*Math.cos(angle), y: 26*Math.sin(angle), z: (Math.random()-0.5)*1, r:1, g:1, b:1, s:2.5 };
+    }
+    const radius = 30 + Math.random() * 90;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    return { x: radius*Math.sin(phi)*Math.cos(theta), y: radius*Math.sin(phi)*Math.sin(theta), z: radius*Math.cos(phi), r:0.1, g:0.6, b:1.0, s:0.7 };
+}
+
+function getPurple(i) {
+    if (Math.random() > 0.8) return { x:(Math.random()-0.5)*100, y:(Math.random()-0.5)*100, z:(Math.random()-0.5)*100, r:0.5, g:0.5, b:0.7, s:0.8 };
+    const r = 20;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0.6, g:0.5, b:1.0, s:2.5 };
+}
+
+function getShrine(i) {
+    const total = COUNT;
+    if (i < total * 0.3) return { x:(Math.random()-0.5)*80, y:-15, z:(Math.random()-0.5)*80, r:0.4, g:0, b:0, s:0.8 };
+    else if (i < total * 0.4) {
+        const px = ((i%4)<2?1:-1)*12;
+        const pz = ((i%4)%2==0?1:-1)*8;
+        return { x: px+(Math.random()-0.5)*2, y:-15+Math.random()*30, z:pz+(Math.random()-0.5)*2, r:0.2, g:0.2, b:0.2, s:0.6 };
+    } else if (i < total * 0.6) {
+        const t = Math.random() * Math.PI * 2;
+        const rad = Math.random() * 30;
+        const curve = Math.pow(rad/30,2)*10;
+        return { x: rad*Math.cos(t), y: 15-curve+(Math.random()*2), z: rad*Math.sin(t)*0.6, r:0.6, g:0, b:0, s:0.6 };
+    }
+    return { x:0, y:0, z:0, r:0, g:0, b:0, s:0 };
+}
+
+// Megumi Ten Shadows – Mahoraga summoning wheel
+function getMahoraga(i) {
+    // Wheel of Transmigration – octagonal ring + divine beast aura
+    const seg = i % 8;
+    const layer = Math.floor(i / (COUNT / 5));
+    if (layer === 0) {
+        // Eight-sided summoning circle
+        const angle = (seg / 8) * Math.PI * 2 + Math.random() * 0.15;
+        const r = 22 + (Math.random() - 0.5) * 2;
+        return { x: r*Math.cos(angle), y: r*Math.sin(angle), z: (Math.random()-0.5)*1, r:0.1, g:1.0, b:0.2, s:1.8 };
+    } else if (layer === 1) {
+        // Inner sacred lines (spokes of the wheel)
+        const spoke = (i % 8) * (Math.PI / 4);
+        const dist = Math.random() * 22;
+        return { x: dist*Math.cos(spoke), y: dist*Math.sin(spoke), z: (Math.random()-0.5)*0.5, r:0.05, g:0.8, b:0.1, s:1.2 };
+    } else if (layer === 2) {
+        // Shadow tendrils rising
+        const angle = Math.random() * Math.PI * 2;
+        const h = -20 + Math.random() * 45;
+        const rad = 3 + Math.random() * 8;
+        return { x: rad*Math.cos(angle + h*0.05), y: h, z: rad*Math.sin(angle + h*0.05), r:0, g:0.5, b:0.1, s:1.0 };
+    } else if (layer === 3) {
+        // Dark shadow mass body
+        const r = 5 + Math.random() * 12;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: 5+r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0, g:0.3, b:0.05, s:0.9 };
+    } else {
+        // Glowing kanji / rune sparks scattered around
+        const r = 25 + Math.random() * 20;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0.05, g:0.4, b:0.1, s:0.5 };
+    }
+}
+
+// Uta Copy – thousand slashes pink/white blades
+function getUta(i) {
+    const layer = Math.floor(i / (COUNT / 4));
+    if (layer === 0) {
+        // Dense central burst orb
+        const r = 2 + Math.random() * 8;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:1.0, g:0.4, b:0.7, s:2.0 };
+    } else if (layer === 1) {
+        // Blade streaks – flat radial slashes
+        const angle = Math.random() * Math.PI * 2;
+        const len = 10 + Math.random() * 30;
+        const width = (Math.random()-0.5) * 0.5;
+        return { x: len*Math.cos(angle)+width, y: len*Math.sin(angle)+width, z: (Math.random()-0.5)*5, r:1.0, g:0.8, b:0.9, s:1.2 };
+    } else if (layer === 2) {
+        // Floating copy-glyph halo
+        const angle = Math.random() * Math.PI * 2;
+        const r = 28 + (Math.random()-0.5) * 4;
+        return { x: r*Math.cos(angle), y: r*Math.sin(angle), z: (Math.random()-0.5)*3, r:0.9, g:0.3, b:0.6, s:1.5 };
+    } else {
+        const r = 35 + Math.random()*20;
+        const theta = Math.random()*Math.PI*2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0.5, g:0.1, b:0.3, s:0.5 };
+    }
+}
+
+// Byakuya Bankai – Senbonzakura Kageyoshi (thousand cherry blossoms)
+function getSenbonzakura(i) {
+    const layer = Math.floor(i / (COUNT / 5));
+    if (layer === 0) {
+        // Two massive blade walls collapsing into petals
+        const side = i % 2 === 0 ? 1 : -1;
+        const h = -20 + Math.random() * 60;
+        const d = side * (10 + Math.random() * 25);
+        return { x: d, y: h, z: (Math.random()-0.5)*3, r:1.0, g:0.7, b:0.75, s:1.5 };
+    } else if (layer === 1) {
+        // Petal storm spiral
+        const t = i / COUNT;
+        const angle = t * 30 + (i % 3) * (Math.PI * 2 / 3);
+        const rad = 5 + t * 35;
+        return { x: rad*Math.cos(angle), y: rad*Math.sin(angle)*0.7, z: (Math.random()-0.5)*15, r:1.0, g:0.5, b:0.6, s:1.0 };
+    } else if (layer === 2) {
+        // Dense blossom cloud
+        const r = 15 + Math.random()*20;
+        const theta = Math.random()*Math.PI*2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:1.0, g:0.6, b:0.7, s:0.8 };
+    } else if (layer === 3) {
+        // Falling individual petals
+        const x = (Math.random()-0.5)*80;
+        const y = -10 + Math.random()*50;
+        return { x, y, z: (Math.random()-0.5)*20, r:0.9, g:0.4, b:0.5, s:0.6 };
+    } else {
+        // Distant glimmer
+        const r = 45 + Math.random()*25;
+        const theta = Math.random()*Math.PI*2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0.4, g:0.1, b:0.15, s:0.4 };
+    }
+}
+
+// Yamamoto Bankai – Zanka no Tachi (scorched earth absolute fire)
+function getRyujin(i) {
+    const layer = Math.floor(i / (COUNT / 5));
+    if (layer === 0) {
+        // Blade column – incandescent white-orange pillar
+        const h = -25 + Math.random() * 70;
+        const rad = Math.random() * 1.5;
+        const angle = Math.random() * Math.PI * 2;
+        return { x: rad*Math.cos(angle), y: h, z: rad*Math.sin(angle), r:3.0, g:1.0, b:0.1, s:3.0 };
+    } else if (layer === 1) {
+        // Fire tornado spiraling outward
+        const t = i / COUNT;
+        const angle = t * 20;
+        const rad = 1 + t * 18;
+        const h = -20 + t * 60;
+        return { x: rad*Math.cos(angle), y: h, z: rad*Math.sin(angle), r:1.5, g:0.4, b:0.0, s:1.8 };
+    } else if (layer === 2) {
+        // Ash / ember field on ground
+        return { x: (Math.random()-0.5)*100, y: -22 + Math.random()*5, z: (Math.random()-0.5)*100, r:0.3, g:0.1, b:0.0, s:0.7 };
+    } else if (layer === 3) {
+        // Scorched sphere
+        const r = 8 + Math.random()*10;
+        const theta = Math.random()*Math.PI*2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:1.0, g:0.3, b:0.0, s:1.2 };
+    } else {
+        // Far embers floating upward
+        const x = (Math.random()-0.5)*90;
+        const y = -15 + Math.random()*50;
+        return { x, y, z: (Math.random()-0.5)*30, r:0.7, g:0.2, b:0.0, s:0.5 };
+    }
+}
+
+// Soifon Bankai – Jakuho Raikōben (nuclear missile thunder)
+function getSoifon(i) {
+    const layer = Math.floor(i / (COUNT / 5));
+    if (layer === 0) {
+        // Missile-shaped dense core
+        const h = -15 + Math.random()*40;
+        const rad = Math.max(0.2, 1.5 - Math.abs(h)*0.04);
+        const angle = Math.random()*Math.PI*2;
+        return { x: rad*Math.cos(angle), y: h, z: rad*Math.sin(angle), r:2.5, g:2.5, b:1.0, s:3.0 };
+    } else if (layer === 1) {
+        // Bee-stinger lightning arcs
+        const angle = Math.random()*Math.PI*2;
+        const len = 5 + Math.random()*35;
+        const jitter = (Math.random()-0.5)*5;
+        return { x: len*Math.cos(angle)+jitter, y: len*Math.sin(angle)+jitter, z: (Math.random()-0.5)*15, r:1.5, g:1.5, b:0.5, s:1.5 };
+    } else if (layer === 2) {
+        // Yellow thunder ring
+        const angle = Math.random()*Math.PI*2;
+        const r = 24 + (Math.random()-0.5)*3;
+        return { x: r*Math.cos(angle), y: r*Math.sin(angle), z: (Math.random()-0.5)*2, r:2.0, g:2.0, b:0.3, s:2.0 };
+    } else if (layer === 3) {
+        // Explosion shockwave disk
+        const r = 30 + Math.random()*15;
+        const angle = Math.random()*Math.PI*2;
+        const h = (Math.random()-0.5)*8;
+        return { x: r*Math.cos(angle), y: h, z: r*Math.sin(angle), r:1.0, g:0.8, b:0.0, s:1.0 };
+    } else {
+        // Crackling sparks environment
+        const r = 40+Math.random()*20;
+        const theta = Math.random()*Math.PI*2;
+        const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r:0.6, g:0.6, b:0.1, s:0.4 };
+    }
+}
+
+// --- State ---
+let currentTech = 'neutral';
+let shakeIntensity = 0;
+let rotMode = 'default';
+let flashPending = false;
+
+const videoElement = document.querySelector('.input_video');
+const canvasElement = document.getElementById('output_canvas');
+const canvasCtx = canvasElement.getContext('2d');
+let glowColor = '#00ffff';
+
+const TECH_META = {
+    neutral:       { color:'#00ffff',   name:'STANDBY',                          char:'— Activate a hand gesture —',  bloom:1.0,  card:null,           shake:false },
+    red:           { color:'#ff4444',   name:'CURSED TECHNIQUE REVERSAL: RED',   char:'Satoru Gojo · JJK',            bloom:2.5,  card:'card-red',      shake:true },
+    void:          { color:'#00ffff',   name:'DOMAIN EXPANSION: INFINITE VOID',  char:'Satoru Gojo · JJK',            bloom:2.0,  card:'card-void',     shake:true },
+    purple:        { color:'#cc44ff',   name:'SECRET TECHNIQUE: HOLLOW PURPLE',  char:'Satoru Gojo · JJK',            bloom:4.0,  card:'card-purple',   shake:true },
+    shrine:        { color:'#ff2222',   name:'DOMAIN EXPANSION: MALEVOLENT SHRINE', char:'Ryomen Sukuna · JJK',       bloom:2.5,  card:'card-shrine',   shake:true },
+    mahoraga:      { color:'#39ff14',   name:'DIVINE GENERALS: EIGHT-HANDLED SWORD DIVERGENT SILA DIVINE GENERAL MAHORAGA', char:'Fushiguro Megumi · JJK',  bloom:3.0, card:'card-mahoraga', shake:true },
+    uta:           { color:'#ff69b4',   name:'COPY — THOUSAND SLASHES',          char:'Yuta Okkotsu · JJK',           bloom:3.5,  card:'card-uta',      shake:true },
+    senbonzakura:  { color:'#ffb7c5',   name:'BANKAI: SENBONZAKURA KAGEYOSHI',   char:'Kuchiki Byakuya · Bleach',     bloom:3.0,  card:'card-senbonzakura', shake:false },
+    ryujin:        { color:'#ff6600',   name:'BANKAI: ZANKA NO TACHI',           char:'Yamamoto Genryūsai · Bleach',  bloom:4.5,  card:'card-ryujin',   shake:true },
+    soifon:        { color:'#ffff88',   name:'BANKAI: JAKUHŌ RAIKŌBEN',          char:'Soifon · Bleach',              bloom:5.0,  card:'card-soifon',   shake:true },
+};
+
+// MediaPipe Hands
+const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+
+hands.onResults((results) => {
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    let detected = 'neutral';
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        results.multiHandLandmarks.forEach((lm) => {
+            drawConnectors(canvasCtx, lm, HAND_CONNECTIONS, { color: glowColor, lineWidth: 4 });
+            drawLandmarks(canvasCtx, lm, { color: '#ffffff', lineWidth: 1, radius: 2 });
+
+            const isUp = (tip, pip) => lm[tip].y < lm[pip].y;
+            const pinch = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
+            const thumbPinkyDist = Math.hypot(lm[4].x - lm[20].x, lm[4].y - lm[20].y);
+            const thumbUp = lm[4].y < lm[3].y;
+
+            const idx   = isUp(8, 6);   // index
+            const mid   = isUp(12, 10); // middle
+            const ring  = isUp(16, 14); // ring
+            const pinky = isUp(20, 18); // pinky
+
+            // Priority order (most specific first)
+            if (pinch < 0.04) {
+                detected = 'purple';                                            // pinch → Hollow Purple
+            } else if (thumbPinkyDist < 0.15 && !idx && !mid && !ring) {
+                detected = 'senbonzakura';                                      // shaka → Byakuya Bankai
+            } else if (!idx && !mid && !ring && !pinky && !thumbUp) {
+                detected = 'ryujin';                                            // fist → Yamamoto Bankai
+            } else if (idx && mid && ring && pinky) {
+                detected = 'shrine';                                            // open hand → Malevolent Shrine
+            } else if (!idx && mid && !ring && !pinky) {
+                detected = 'soifon';                                            // middle only → Soifon Bankai
+            } else if (idx && mid && !ring && !pinky) {
+                detected = 'void';                                              // index+middle → Infinite Void
+            } else if (idx && !mid && !ring && pinky) {
+                detected = 'mahoraga';                                          // index+pinky (rock sign) → Mahoraga
+            } else if (idx && mid && !ring && thumbUp) {
+                detected = 'uta';                                               // thumb+index+middle → Uta
+            } else if (idx && !mid) {
+                detected = 'red';                                               // index only → Red
+            }
+        });
+    }
+
+    updateState(detected);
+});
+
+function triggerFlash() {
+    const el = document.getElementById('flash-overlay');
+    el.style.opacity = '0.6';
+    setTimeout(() => { el.style.opacity = '0'; }, 80);
+}
+
+function updateState(tech) {
+    if (currentTech === tech) return;
+    currentTech = tech;
+
+    const meta = TECH_META[tech];
+    glowColor = meta.color;
+
+    // UI update
+    const nameEl = document.getElementById('technique-name');
+    const charEl = document.getElementById('character-name');
+    nameEl.style.color = meta.color;
+    nameEl.style.textShadow = `0 0 20px ${meta.color}`;
+    nameEl.innerText = meta.name;
+    charEl.style.color = meta.color;
+    charEl.innerText = meta.char;
+
+    bloomPass.strength = meta.bloom;
+    shakeIntensity = meta.shake ? 0.35 : 0;
+
+    // Flash on activation
+    if (tech !== 'neutral') triggerFlash();
+
+    // Update guide card highlights
+    document.querySelectorAll('.guide-card').forEach(c => c.classList.remove('active'));
+    if (meta.card) document.getElementById(meta.card)?.classList.add('active');
+
+    // Rotation mode
+    rotMode = tech;
+
+    // Rebuild particles
+    const gen = {
+        neutral:      neutralGen,
+        red:          getRed,
+        void:         getVoid,
+        purple:       getPurple,
+        shrine:       getShrine,
+        mahoraga:     getMahoraga,
+        uta:          getUta,
+        senbonzakura: getSenbonzakura,
+        ryujin:       getRyujin,
+        soifon:       getSoifon,
+    }[tech] || neutralGen;
+
+    for (let i = 0; i < COUNT; i++) {
+        const p = gen(i);
+        targetPos[i*3]   = p.x;
+        targetPos[i*3+1] = p.y;
+        targetPos[i*3+2] = p.z;
+        targetCol[i*3]   = p.r;
+        targetCol[i*3+1] = p.g;
+        targetCol[i*3+2] = p.b;
+        targetSizes[i]   = p.s;
+    }
+}
+
+function neutralGen(i) {
+    if (i < COUNT * 0.05) {
+        const r = 15 + Math.random()*20;
+        const t = Math.random()*6.28;
+        const ph = Math.random()*3.14;
+        return { x: r*Math.sin(ph)*Math.cos(t), y: r*Math.sin(ph)*Math.sin(t), z: r*Math.cos(ph), r:0.1, g:0.1, b:0.2, s:0.4 };
+    }
+    return { x:0, y:0, z:0, r:0, g:0, b:0, s:0 };
+}
+
+// Camera
+const cameraUtils = new Camera(videoElement, {
+    onFrame: async () => {
+        canvasElement.width  = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+        await hands.send({ image: videoElement });
+    },
+    width: 640, height: 480
+});
+cameraUtils.start();
+
+// --- Animation Loop ---
+let frame = 0;
+function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+
+    // Screen shake
+    if (shakeIntensity > 0) {
+        renderer.domElement.style.transform =
+            `translate(${(Math.random()-0.5)*shakeIntensity*30}px, ${(Math.random()-0.5)*shakeIntensity*30}px)`;
+    } else {
+        renderer.domElement.style.transform = 'translate(0,0)';
+    }
+
+    // Lerp particles
+    const pos = particles.geometry.attributes.position.array;
+    const col = particles.geometry.attributes.color.array;
+    const siz = particles.geometry.attributes.size.array;
+    const speed = 0.1;
+
+    for (let i = 0; i < COUNT * 3; i++) {
+        pos[i] += (targetPos[i] - pos[i]) * speed;
+        col[i] += (targetCol[i] - col[i]) * speed;
+    }
+    for (let i = 0; i < COUNT; i++) {
+        siz[i] += (targetSizes[i] - siz[i]) * speed;
+    }
+
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.geometry.attributes.color.needsUpdate = true;
+    particles.geometry.attributes.size.needsUpdate = true;
+
+    // Rotation logic per technique
+    const t = frame * 0.01;
+    switch (rotMode) {
+        case 'red':
+            particles.rotation.z -= 0.1;
+            break;
+        case 'purple':
+            particles.rotation.z += 0.2;
+            particles.rotation.y += 0.05;
+            break;
+        case 'shrine':
+            particles.rotation.set(0, 0, 0);
+            break;
+        case 'mahoraga':
+            particles.rotation.y += 0.012;
+            // Slow pulse on the wheel
+            particles.rotation.z = Math.sin(t * 0.5) * 0.08;
+            break;
+        case 'uta':
+            particles.rotation.z -= 0.18;
+            particles.rotation.y += 0.06;
+            break;
+        case 'senbonzakura':
+            particles.rotation.y += 0.006;
+            particles.rotation.z += 0.004;
+            break;
+        case 'ryujin':
+            particles.rotation.y += 0.03;
+            // Tornado twist
+            particles.rotation.z += 0.008;
+            break;
+        case 'soifon':
+            // Lightning jitter
+            particles.rotation.y += 0.04;
+            particles.rotation.z = Math.sin(t * 8) * 0.05;
+            break;
+        default:
+            particles.rotation.y += 0.005;
+    }
+
+    composer.render();
+}
+
+// Init particle state
+updateState('neutral');
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "id": "7",
+  "subject": "Replace CDN 3D with embedded zero-dependency WebGL engine",
+  "description": "User's machine blocks unpkg/jsdelivr → fallback. Build raw WebGL particle engine inline (22k particles, additive glow, orbit controls, formations) + rename file to bust cache",
+  "activeForm": "Building embedded WebGL 3D engine",
+  "status": "in_progress",
+  "blocks": [],
+  "blockedBy": []
+}

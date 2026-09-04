@@ -1,0 +1,9 @@
+{
+  "id": "4",
+  "subject": "Extend selftest to full pipeline verification",
+  "description": "Synthetic star through all 5 stages — must recover the injected 11.3d period and 900ppm depth",
+  "activeForm": "Verifying full pipeline",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

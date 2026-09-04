@@ -1,0 +1,9 @@
+{
+  "id": "6",
+  "subject": "Rebuild preview as single cinematic index.html",
+  "description": "Fix CDN fallback race, upgrade 3D to reference level (26k particles, tuned bloom, textures), full UI restyle (glass, neon, fonts)",
+  "activeForm": "Rebuilding cinematic preview",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

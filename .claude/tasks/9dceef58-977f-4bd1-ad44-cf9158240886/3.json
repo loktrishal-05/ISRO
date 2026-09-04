@@ -1,0 +1,9 @@
+{
+  "id": "3",
+  "subject": "Build export.py — dataset assembly with star-level split",
+  "description": "Collect features + views into dataset_tabular.csv and dataset_views.npz with leakage-safe train/val/test split by star",
+  "activeForm": "Building dataset export",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

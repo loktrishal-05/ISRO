@@ -1,0 +1,9 @@
+{
+  "id": "5",
+  "subject": "Init git repo + root README + .gitignore",
+  "description": "Protect the work, make it pushable to GitHub, document the project at repo root",
+  "activeForm": "Setting up git repo",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}

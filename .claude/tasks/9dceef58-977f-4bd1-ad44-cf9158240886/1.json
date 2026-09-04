@@ -1,0 +1,9 @@
+{
+  "id": "1",
+  "subject": "Build search.py — BLS period search",
+  "description": "Box Least Squares period search in numpy (astropy fallback), finds period/t0/duration/depth/SNR/SDE from detrended curves",
+  "activeForm": "Building BLS period search",
+  "status": "completed",
+  "blocks": [],
+  "blockedBy": []
+}
